@@ -14,7 +14,8 @@ HEADERS += \
     storedData/kholleur.h \
     storedData/class.h \
     managers/kholleursmanager.h \
-    managers/classesmanager.h
+    managers/classesmanager.h \
+    weekbox.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -24,6 +25,7 @@ SOURCES += \
     storedData/kholleur.cpp \
     storedData/class.cpp \
     managers/kholleursmanager.cpp \
-    managers/classesmanager.cpp
+    managers/classesmanager.cpp \
+    weekbox.cpp
 
 RESOURCES +=

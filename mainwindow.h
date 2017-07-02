@@ -14,6 +14,7 @@
 #include "managers/kholleursmanager.h"
 #include "aboutitdialog.h"
 #include "contactdialog.h"
+#include "weekbox.h"
 
 namespace Ui {
 class MainWindow;
@@ -29,6 +30,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     int distanceLevenshtein(QString u, QString v, int dmax, int cInsert = 1, int cDelete = 1);
+    void initListsKholleursClasses();
+    void updateWindow();
 
 protected:
     bool eventFilter(QObject* obj, QEvent *event);
@@ -42,12 +45,16 @@ public slots:
     void selectClass(QString name);
     void selectInList(QString name, QListWidget* list, TypeElement type);
     void displayLists();
+    void kholleurSelected();
+    void addWeek();
 
 private:
     Ui::MainWindow *ui;
     QStringList args;
     QList<Kholleur*>* m_list_kholleurs;
     QList<Class*>* m_list_classes;
+    QList<WeekBox*>* m_weekboxes;
+    QDate m_firstMonday;
 };
 
 #endif // MAINWINDOW_H
