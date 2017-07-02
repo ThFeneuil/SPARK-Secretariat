@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>SPARK Kholloscope</string>
+   <string>SPARK Secrétariat</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0">
@@ -36,7 +36,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QListView" name="list_teachers">
+         <widget class="QListWidget" name="list_kholleurs">
           <property name="maximumSize">
            <size>
             <width>150</width>
@@ -46,7 +46,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="edit_teachers"/>
+         <widget class="QLineEdit" name="edit_kholleurs"/>
         </item>
        </layout>
       </item>
@@ -77,7 +77,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QListView" name="list_classes">
+         <widget class="QListWidget" name="list_classes">
           <property name="maximumSize">
            <size>
             <width>150</width>
