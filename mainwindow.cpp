@@ -213,7 +213,9 @@ void MainWindow::kholleurSelected() {
             for(int i=0; i<m_weekboxes->count(); i++) {
                 if(m_weekboxes->at(i))
                     delete m_weekboxes->at(i);
-                m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*i), khll, cl, 0));
+                if(i==0)
+                        m_weekboxes->replace(i, new WeekBox(ALL_MONDAY, khll, cl, 0, m_weekboxes));
+                else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, 0));
                 ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(i));
             }
         } else {

@@ -28,4 +28,7 @@ SOURCES += \
     managers/classesmanager.cpp \
     weekbox.cpp
 
-RESOURCES +=
+RESOURCES += \
+    secre.qrc
+
+DISTFILES +=

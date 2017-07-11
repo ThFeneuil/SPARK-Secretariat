@@ -197,7 +197,6 @@
     </property>
     <addaction name="action_DB_Classes"/>
     <addaction name="action_DB_Kholleurs"/>
-    <addaction name="action_DB_Links"/>
    </widget>
    <widget class="QMenu" name="menu_Aide">
     <property name="title">

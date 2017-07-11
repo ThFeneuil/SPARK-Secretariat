@@ -17,11 +17,28 @@
 #include "storedData/kholleur.h"
 #include "storedData/class.h"
 
+#define ALL_MONDAY QDate(1923,1,1)
+
+class WeekBox;
+
+class QListWidgetD : public QListWidget
+{
+    Q_OBJECT
+public:
+    explicit QListWidgetD(WeekBox* bx);
+
+protected:
+    bool eventFilter(QObject* obj, QEvent *event);
+
+private:
+    WeekBox* m_bx;
+};
+
 class WeekBox : public QGroupBox
 {
     Q_OBJECT
 public:
-    explicit WeekBox(QDate monday, Kholleur* khll, Class* cl = NULL, QWidget *parent = 0);
+    explicit WeekBox(QDate monday, Kholleur* khll, Class* cl = NULL, QWidget *parent = 0, QList<WeekBox*>* links = NULL);
     ~WeekBox();
     void displayHours();
 
@@ -32,15 +49,18 @@ public slots:
     void updateSuffixNbStudents(int nb);
     void addHour();
     void deleteHour();
+    void resetHours();
 
 private:
     QDate m_monday;
     QComboBox* m_days;
     QTimeEdit* m_hour;
     QSpinBox* m_nbStudents;
-    QListWidget* m_listHours;
+    QListWidgetD* m_listHours;
     Kholleur* m_kholleur;
     Class* m_class;
+    bool m_isWeekModel;
+    QList<WeekBox*>* m_links;
 };
 
 QString nameDay(int num);
