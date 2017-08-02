@@ -209,7 +209,7 @@
     <property name="title">
      <string>Diffusion</string>
     </property>
-    <addaction name="actionOptions"/>
+    <addaction name="action_options"/>
     <addaction name="actionDiffuser"/>
     <addaction name="actionImprimer"/>
    </widget>
@@ -376,7 +376,7 @@
     <string>Liens classes-kholleurs</string>
    </property>
   </action>
-  <action name="actionOptions">
+  <action name="action_options">
    <property name="text">
     <string>Options</string>
    </property>

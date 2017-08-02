@@ -15,6 +15,7 @@
 #include "aboutitdialog.h"
 #include "contactdialog.h"
 #include "weekbox.h"
+#include "optionsdialog.h"
 
 namespace Ui {
 class MainWindow;
@@ -39,9 +40,11 @@ protected:
 public slots:
     void openClassesManager();
     void openKholleursManager();
+    void openOptions();
     void openHelp();
     void openAboutIt();
     void selectKholleur(QString name);
+    void middleAreaEmpty(bool noKholleur, bool noClass);
     void selectClass(QString name);
     void selectInList(QString name, QListWidget* list, TypeElement type);
     void displayLists();
@@ -55,6 +58,7 @@ private:
     QList<Class*>* m_list_classes;
     QList<WeekBox*>* m_weekboxes;
     QDate m_firstMonday;
+    QSqlDatabase* m_db;
 };
 
 #endif // MAINWINDOW_H

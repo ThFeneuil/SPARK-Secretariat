@@ -61,6 +61,7 @@ private:
     Class* m_class;
     bool m_isWeekModel;
     QList<WeekBox*>* m_links;
+    QSqlDatabase m_db;
 };
 
 QString nameDay(int num);

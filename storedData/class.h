@@ -15,7 +15,8 @@ public:
     QString getName() const;
     bool getOptServer() const;
     bool getOptEmail() const;
-    bool getOptpaper() const;
+    bool getOptPaper() const;
+    QString getEmail() const;
 
     //Setters
     void setId(int id);
@@ -23,6 +24,7 @@ public:
     void setOptServer(bool send);
     void setOptEmail(bool send);
     void setOptPaper(bool send);
+    void setEmail(QString email);
 
 private:
     int m_id;
@@ -30,6 +32,7 @@ private:
     bool m_opt_server;
     bool m_opt_email;
     bool m_opt_paper;
+    QString m_email;
 };
 
 #endif // CLASS_H

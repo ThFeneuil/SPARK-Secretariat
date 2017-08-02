@@ -30,8 +30,14 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->edit_classes, SIGNAL(textChanged(QString)), this, SLOT(selectClass(QString)));
     connect(ui->list_kholleurs, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
     connect(ui->list_classes, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
+    connect(ui->action_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
 
     displayLists();
+
+    if(ui->list_kholleurs->count() > 0)
+        ui->list_kholleurs->setCurrentRow(0);
+    if(ui->list_classes->count() > 0)
+        ui->list_classes->setCurrentRow(0);
 }
 
 MainWindow::~MainWindow()
@@ -158,6 +164,21 @@ void MainWindow::openKholleursManager() {
     }
 }
 
+void MainWindow::openOptions() {
+    //Get connection information
+    QSqlDatabase db = QSqlDatabase::database();
+
+    if(db.isOpen()) {
+        // Open the manager
+        OptionsDialog manager(&db, this);
+        manager.exec();
+        updateWindow();
+    }
+    else {
+        QMessageBox::critical(this, "Erreur", "La connexion à la base de données a échoué");
+    }
+}
+
 void MainWindow::openAboutIt() {
     AboutItDialog dialog(this);
     dialog.exec();
@@ -204,12 +225,13 @@ void MainWindow::selectInList(QString name, QListWidget* list, TypeElement type)
 }
 
 void MainWindow::kholleurSelected() {
-    QListWidgetItem* item = ui->list_kholleurs->currentItem();
-    if(item) {
-        Kholleur* khll = (Kholleur*) item->data(Qt::UserRole).toULongLong();
-        Class* cl = (ui->list_classes->currentItem()) ? (Class*) ui->list_classes->currentItem()->data(Qt::UserRole).toULongLong() : NULL;
-        if(khll) {
-            ui->title_middleArea->setText("Kholleur : " + khll->getName());
+    QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
+    QListWidgetItem* itemClass = ui->list_classes->currentItem();
+    if(itemKholleur && itemClass) {
+        Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
+        Class* cl = (Class*) itemClass->data(Qt::UserRole).toULongLong();
+        if(khll && cl) {
+            ui->title_middleArea->setText("Kholleur : " + khll->getName() + " >>> Classe : " + cl->getName());
             for(int i=0; i<m_weekboxes->count(); i++) {
                 if(m_weekboxes->at(i))
                     delete m_weekboxes->at(i);
@@ -218,16 +240,33 @@ void MainWindow::kholleurSelected() {
                 else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, 0));
                 ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(i));
             }
-        } else {
-            ui->title_middleArea->setText("Aucun kholleur sélectionné...");
-            for(int i=0; i<m_weekboxes->count(); i++)
-                ui->layoutMiddle->removeWidget(m_weekboxes->at(i));
+        } else
+            middleAreaEmpty(khll == NULL, cl == NULL);
+    } else
+        middleAreaEmpty(itemKholleur == NULL, itemClass == NULL);
+}
+
+void MainWindow::middleAreaEmpty(bool noKholleur, bool noClass) {
+    if(noKholleur && noClass)
+        ui->title_middleArea->setText("Aucun kholleur sélectionné...<br />Aucune classe sélectionnée...");
+    else if(noKholleur)
+        ui->title_middleArea->setText("Aucun kholleur sélectionné...");
+    else
+        ui->title_middleArea->setText("Aucune classe sélectionnée...");
+
+    if(noKholleur || noClass) {
+        for(int i=0; i<m_weekboxes->count(); i++) {
+            ui->layoutMiddle->removeWidget(m_weekboxes->at(i));
+            delete m_weekboxes->at(i);
+            m_weekboxes->replace(i, NULL);
         }
     }
 }
 
 
 void MainWindow::addWeek() {
+    QSqlDatabase db = QSqlDatabase::database();
+
     QListWidgetItem* item = ui->list_kholleurs->currentItem();
     if(item) {
         Kholleur* khll = (Kholleur*) item->data(Qt::UserRole).toULongLong();

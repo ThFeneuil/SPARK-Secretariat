@@ -5,7 +5,8 @@ FORMS += \
     aboutitdialog.ui \
     contactdialog.ui \
     managers/kholleursmanager.ui \
-    managers/classesmanager.ui
+    managers/classesmanager.ui \
+    optionsdialog.ui
 
 HEADERS += \
     mainwindow.h \
@@ -15,7 +16,8 @@ HEADERS += \
     storedData/class.h \
     managers/kholleursmanager.h \
     managers/classesmanager.h \
-    weekbox.h
+    weekbox.h \
+    optionsdialog.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -26,7 +28,8 @@ SOURCES += \
     storedData/class.cpp \
     managers/kholleursmanager.cpp \
     managers/classesmanager.cpp \
-    weekbox.cpp
+    weekbox.cpp \
+    optionsdialog.cpp
 
 RESOURCES += \
     secre.qrc

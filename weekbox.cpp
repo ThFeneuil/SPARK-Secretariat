@@ -22,6 +22,7 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QWidget *parent, QList
     m_class = cl;
     m_isWeekModel = (m_monday == ALL_MONDAY);
     m_links = links;
+    m_db = QSqlDatabase::database();
 
     if(m_isWeekModel) {
         QPalette pal = palette();
@@ -90,7 +91,7 @@ void WeekBox::displayHours() {
     QMap<QString, QListWidgetItem*> hours;
 
     if(m_class) {
-        QSqlQuery query(QSqlDatabase::database());
+        QSqlQuery query(m_db);
         query.prepare("SELECT id, date, time, nb_students FROM sec_kholles WHERE "
                       "id_kholleurs = :id_kholleurs AND id_classes = :id_classes AND (date >= :start AND date <= :end) "
                       "ORDER BY date, time"
@@ -169,7 +170,7 @@ void WeekBox::updateSuffixNbStudents(int nb) {
 }
 
 void WeekBox::addHour() {
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(m_db);
     query.prepare("INSERT INTO sec_kholles(id_kholleurs, id_classes, date, time, nb_students) VALUES(:id_kholleurs, :id_classes, :date, :time, :nb_students)");
     query.bindValue(":id_kholleurs", m_kholleur->getId());
     query.bindValue(":id_classes", m_class->getId());
@@ -203,7 +204,7 @@ void WeekBox::deleteHour() {
             delete item;
         }
     }
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(m_db);
     if(idsSpecial.length() > 0)
         query.exec("DELETE FROM sec_kholles WHERE " + idsSpecial.join(" OR "));
     if(idsAllMonday.length() > 0)
@@ -217,7 +218,7 @@ void WeekBox::deleteHour() {
 }
 
 void WeekBox::resetHours() {
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(m_db);
     query.prepare("DELETE FROM sec_exceptions WHERE monday = :monday AND id_kholles IN "
                   "(SELECT id FROM sec_kholles WHERE id_kholleurs = :id_kholleurs AND id_classes = :id_classes)");
     query.bindValue(":monday", m_monday.toString("yyyy-MM-dd"));

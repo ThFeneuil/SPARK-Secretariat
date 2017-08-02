@@ -6,6 +6,7 @@ Class::Class() {
     m_opt_server = false;
     m_opt_email = false;
     m_opt_paper = false;
+    m_email = "";
 }
 
 Class::~Class() {
@@ -25,8 +26,11 @@ bool Class::getOptServer() const {
 bool Class::getOptEmail() const {
     return m_opt_email;
 }
-bool Class::getOptpaper() const {
+bool Class::getOptPaper() const {
     return m_opt_paper;
+}
+QString Class::getEmail() const {
+    return m_email;
 }
 
 // Setters
@@ -44,4 +48,7 @@ void Class::setOptEmail(bool send) {
 }
 void Class::setOptPaper(bool send) {
     m_opt_paper = send;
+}
+void Class::setEmail(QString email) {
+    m_email = email;
 }
