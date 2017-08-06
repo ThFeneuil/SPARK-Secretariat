@@ -209,9 +209,9 @@
     <property name="title">
      <string>Diffusion</string>
     </property>
-    <addaction name="action_options"/>
-    <addaction name="actionDiffuser"/>
-    <addaction name="actionImprimer"/>
+    <addaction name="action_Diffusion_options"/>
+    <addaction name="action_Diffusion_Diffuse"/>
+    <addaction name="action_Diffusion_Print"/>
    </widget>
    <addaction name="menuFichier"/>
    <addaction name="menuBDD"/>
@@ -376,17 +376,17 @@
     <string>Liens classes-kholleurs</string>
    </property>
   </action>
-  <action name="action_options">
+  <action name="action_Diffusion_options">
    <property name="text">
     <string>Options</string>
    </property>
   </action>
-  <action name="actionDiffuser">
+  <action name="action_Diffusion_Diffuse">
    <property name="text">
     <string>Diffuser</string>
    </property>
   </action>
-  <action name="actionImprimer">
+  <action name="action_Diffusion_Print">
    <property name="text">
     <string>Imprimer</string>
    </property>

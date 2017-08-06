@@ -16,6 +16,7 @@
 #include "contactdialog.h"
 #include "weekbox.h"
 #include "optionsdialog.h"
+#include "diffusionmanager.h"
 
 namespace Ui {
 class MainWindow;
@@ -41,6 +42,7 @@ public slots:
     void openClassesManager();
     void openKholleursManager();
     void openOptions();
+    void openDiffusionManager();
     void openHelp();
     void openAboutIt();
     void selectKholleur(QString name);

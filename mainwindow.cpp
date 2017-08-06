@@ -30,7 +30,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->edit_classes, SIGNAL(textChanged(QString)), this, SLOT(selectClass(QString)));
     connect(ui->list_kholleurs, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
     connect(ui->list_classes, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
-    connect(ui->action_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
+    connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
+    connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
+    connect(ui->button_publish, SIGNAL(clicked(bool)), this, SLOT(openDiffusionManager()));
 
     displayLists();
 
@@ -173,6 +175,20 @@ void MainWindow::openOptions() {
         OptionsDialog manager(&db, this);
         manager.exec();
         updateWindow();
+    }
+    else {
+        QMessageBox::critical(this, "Erreur", "La connexion à la base de données a échoué");
+    }
+}
+
+void MainWindow::openDiffusionManager() {
+    //Get connection information
+    QSqlDatabase db = QSqlDatabase::database();
+
+    if(db.isOpen()) {
+        // Open the manager
+        DiffusionManager manager(this);
+        manager.exec();
     }
     else {
         QMessageBox::critical(this, "Erreur", "La connexion à la base de données a échoué");
