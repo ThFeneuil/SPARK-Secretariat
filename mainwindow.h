@@ -17,6 +17,7 @@
 #include "weekbox.h"
 #include "optionsdialog.h"
 #include "diffusionmanager.h"
+#include "printpdf.h"
 
 namespace Ui {
 class MainWindow;
@@ -34,6 +35,7 @@ public:
     int distanceLevenshtein(QString u, QString v, int dmax, int cInsert = 1, int cDelete = 1);
     void initListsKholleursClasses();
     void updateWindow();
+    void displayDurations();
 
 protected:
     bool eventFilter(QObject* obj, QEvent *event);
@@ -52,6 +54,7 @@ public slots:
     void displayLists();
     void kholleurSelected();
     void addWeek();
+    void saveDurations();
 
 private:
     Ui::MainWindow *ui;

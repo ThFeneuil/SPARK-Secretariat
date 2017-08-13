@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>850</width>
-    <height>581</height>
+    <width>841</width>
+    <height>650</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -60,13 +60,13 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>512</width>
-           <height>496</height>
+           <width>503</width>
+           <height>565</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <layout class="QVBoxLayout" name="layoutMiddle">
+           <layout class="QVBoxLayout" name="layoutMiddle" stretch="1,0,1">
             <property name="bottomMargin">
              <number>10</number>
             </property>
@@ -83,6 +83,64 @@
               <property name="text">
                <string/>
               </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QWidget" name="layout_duration" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <spacer name="horizontalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_3">
+                 <property name="text">
+                  <string>Préparation (minutes) : </string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="spinBox_preparation"/>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_4">
+                 <property name="text">
+                  <string>Passage (minutes) :</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="spinBox_kholle"/>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
              </widget>
             </item>
             <item>
@@ -170,7 +228,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>850</width>
+     <width>841</width>
      <height>21</height>
     </rect>
    </property>

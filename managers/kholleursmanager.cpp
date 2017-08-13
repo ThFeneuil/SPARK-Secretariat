@@ -56,7 +56,7 @@ bool KholleursManager::add_kholleur() {
         return false;
     } else {
         QSqlQuery query(*m_db);
-        query.prepare("INSERT INTO sec_kholleurs(name) VALUES(:name)");
+        query.prepare("INSERT INTO sec_kholleurs(name, duration_preparation, duration_kholle) VALUES(:name, 0, 60)");
         query.bindValue(":name", name);
         query.exec();
 

@@ -20,7 +20,9 @@ HEADERS += \
     weekbox.h \
     optionsdialog.h \
     onlinedatabase.h \
-    diffusionmanager.h
+    diffusionmanager.h \
+    printpdf.h \
+    storedData/timeslot.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -34,7 +36,9 @@ SOURCES += \
     weekbox.cpp \
     optionsdialog.cpp \
     onlinedatabase.cpp \
-    diffusionmanager.cpp
+    diffusionmanager.cpp \
+    printpdf.cpp \
+    storedData/timeslot.cpp
 
 RESOURCES += \
     secre.qrc

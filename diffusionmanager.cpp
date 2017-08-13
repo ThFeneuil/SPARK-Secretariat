@@ -83,11 +83,17 @@ void DiffusionManager::infoLabel() {
 void DiffusionManager::diffuse() {
     QList<QListWidgetItem*> selection = ui->list_classes->selectedItems();
 
+    QList<Class*> listByPaper;
     for(int i=0; i<selection.length(); i++) {
         Class* cls = (Class*) selection[i]->data(Qt::UserRole).toULongLong();
         if(cls->getOptServer())
             diffuseServer(cls);
+        if(cls->getOptPaper())
+            listByPaper.append(cls);
     }
+
+    if(listByPaper.length() > 0)
+        PrintPDF::printTimeSlots(ui->edit_monday->date(), listByPaper, QSqlDatabase::database());
 }
 
 bool DiffusionManager::diffuseServer(Class* cls) {
@@ -110,7 +116,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             break;
         case 2:
         default:
-            query.prepare("SELECT id, date, time, nb_students, id_kholleurs FROM sec_kholles WHERE "
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle FROM sec_kholles WHERE "
                           "id_classes = :id_classes AND (date <= '1924-01-01') "
                           "AND id NOT IN "
                           "(SELECT id_kholles FROM sec_exceptions WHERE monday=:monday) "
@@ -130,9 +136,11 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             QTime time = query.value(2).toTime();
             int nbStudents = query.value(3).toInt();
             int id_kholleurs = query.value(4).toInt();
+            int duration_preparation = query.value(5).toInt();
+            int duration_kholle = query.value(6).toInt();
 
             queryDiffuse_str += (queryDiffuse_str != "") ? ", " : "";
-            queryDiffuse_str += "('"+time.toString("hh:mm:ss")+"', '"+time.addSecs(3600).toString("hh:mm:ss")+"', '"+time.addSecs(0).toString("hh:mm:ss")+"', '";
+            queryDiffuse_str += "('"+time.addSecs(duration_preparation*60).toString("hh:mm:ss")+"', '"+time.addSecs((duration_preparation+duration_kholle)*60).toString("hh:mm:ss")+"', '"+time.toString("hh:mm:ss")+"', '";
             queryDiffuse_str += m_kholleurs[id_kholleurs]->getName()+"', '"+date.toString("yyyy-MM-dd")+"', '"+QString::number(nbStudents)+"', '"+cls->getName()+"')";
          }
     }
@@ -149,3 +157,4 @@ bool DiffusionManager::diffuseServer(Class* cls) {
 void DiffusionManager::test(ODBRequest *req) {
     QMessageBox::information(this, "Error", req->lastError());
 }
+

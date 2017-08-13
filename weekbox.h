@@ -38,7 +38,7 @@ class WeekBox : public QGroupBox
 {
     Q_OBJECT
 public:
-    explicit WeekBox(QDate monday, Kholleur* khll, Class* cl = NULL, QWidget *parent = 0, QList<WeekBox*>* links = NULL);
+    explicit WeekBox(QDate monday, Kholleur* khll, Class* cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QWidget *parent = 0, QList<WeekBox*>* links = NULL);
     ~WeekBox();
     void displayHours();
 
@@ -62,6 +62,8 @@ private:
     bool m_isWeekModel;
     QList<WeekBox*>* m_links;
     QSqlDatabase m_db;
+    QSpinBox* m_spinbox_preparation;
+    QSpinBox* m_spinbox_kholle;
 };
 
 QString nameDay(int num);

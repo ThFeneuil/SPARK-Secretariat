@@ -33,6 +33,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
     connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
     connect(ui->button_publish, SIGNAL(clicked(bool)), this, SLOT(openDiffusionManager()));
+    connect(ui->spinBox_preparation, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
+    connect(ui->spinBox_kholle, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
 
     displayLists();
 
@@ -241,9 +243,11 @@ void MainWindow::selectInList(QString name, QListWidget* list, TypeElement type)
 }
 
 void MainWindow::kholleurSelected() {
+    displayDurations();
     QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
     QListWidgetItem* itemClass = ui->list_classes->currentItem();
     if(itemKholleur && itemClass) {
+        ui->layout_duration->setVisible(true);
         Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
         Class* cl = (Class*) itemClass->data(Qt::UserRole).toULongLong();
         if(khll && cl) {
@@ -252,8 +256,8 @@ void MainWindow::kholleurSelected() {
                 if(m_weekboxes->at(i))
                     delete m_weekboxes->at(i);
                 if(i==0)
-                        m_weekboxes->replace(i, new WeekBox(ALL_MONDAY, khll, cl, 0, m_weekboxes));
-                else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, 0));
+                        m_weekboxes->replace(i, new WeekBox(ALL_MONDAY, khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, 0, m_weekboxes));
+                else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, 0));
                 ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(i));
             }
         } else
@@ -263,6 +267,7 @@ void MainWindow::kholleurSelected() {
 }
 
 void MainWindow::middleAreaEmpty(bool noKholleur, bool noClass) {
+    ui->layout_duration->setVisible(false);
     if(noKholleur && noClass)
         ui->title_middleArea->setText("Aucun kholleur sélectionné...<br />Aucune classe sélectionnée...");
     else if(noKholleur)
@@ -289,7 +294,7 @@ void MainWindow::addWeek() {
         Class* cl = (ui->list_classes->currentItem()) ? (Class*) ui->list_classes->currentItem()->data(Qt::UserRole).toULongLong() : NULL;
         if(khll) {
             int n = m_weekboxes->count();
-            m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7*n), khll, cl, 0));
+            m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7*n), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, 0));
             ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(n));
         }
     }
@@ -348,7 +353,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent *event) {
                       && ((void*) listWidget->currentItem()->data(Qt::UserRole).toULongLong()) == NULL ) {
                 QSqlQuery query(QSqlDatabase::database());
                 if(obj == ui->edit_kholleurs)
-                        query.prepare("INSERT INTO sec_kholleurs(name) VALUES(:name)");
+                        query.prepare("INSERT INTO sec_kholleurs(name, duration_preparation, duration_kholle) VALUES(:name, 0, 60)");
                 else    query.prepare("INSERT INTO sec_classes(name) VALUES(:name)");
                 query.bindValue(":name", ((QLineEdit*) obj)->text());
                 query.exec();
@@ -376,4 +381,44 @@ bool MainWindow::eventFilter(QObject* obj, QEvent *event) {
         }
     }
     return false;
+}
+
+void MainWindow::displayDurations() {
+    QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
+    if(itemKholleur) {
+        Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
+        if(khll) {
+            ui->spinBox_preparation->setEnabled(true);
+            ui->spinBox_kholle->setEnabled(true);
+            QSqlQuery query(QSqlDatabase::database());
+            query.prepare("SELECT duration_preparation, duration_kholle FROM sec_kholleurs WHERE id=:id");
+            query.bindValue(":id", khll->getId());
+            query.exec();
+            if(query.next()) {
+                ui->spinBox_preparation->setValue(query.value(0).toInt());
+                ui->spinBox_kholle->setValue(query.value(1).toInt());
+            } else {
+                ui->spinBox_preparation->setValue(0);
+                ui->spinBox_kholle->setValue(60);
+            }
+            return;
+        }
+    }
+    ui->spinBox_preparation->setEnabled(false);
+    ui->spinBox_kholle->setEnabled(false);
+
+}
+void MainWindow::saveDurations() {
+    QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
+    if(itemKholleur) {
+        Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
+        if(khll) {
+            QSqlQuery query(QSqlDatabase::database());
+            query.prepare("UPDATE sec_kholleurs SET duration_preparation=:duration_preparation, duration_kholle=:duration_kholle WHERE id=:id");
+            query.bindValue(":id", khll->getId());
+            query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
+            query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
+            query.exec();
+        }
+    }
 }

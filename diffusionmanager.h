@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QListWidgetItem>
 #include "onlinedatabase.h"
+#include "printpdf.h"
 #include "storedData/class.h"
 #include "storedData/kholleur.h"
 
