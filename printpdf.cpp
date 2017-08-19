@@ -247,3 +247,96 @@ int PrintPDF::adaptFont(QFont* font, QString text, int widthText, int maxHeight)
     font->setPixelSize(initialPointSize);
     return betterPointSize;
 }
+
+bool PrintPDF::printKhollesPapers(QDate monday_date) {
+    QString filename = QFileDialog::getSaveFileName(NULL, "Enregistrer sous...",
+                                                    "Kholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
+    if(filename == "")
+        return false;
+
+    //Create the PDF Writer
+    QPdfWriter writer(filename);
+    writer.setPageSize(QPdfWriter::A3);
+    writer.setPageOrientation(QPageLayout::Portrait);
+    writer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
+    writer.setCreator("SPARK Secretariat");
+
+    QPainter painter;
+    if(!painter.begin(&writer)) {
+        QMessageBox::critical(NULL, "Erreur", "Erreur lors de l'écriture du fichier. Le fichier est peut-être ouvert ?");
+        return false;
+    }
+
+    int width = writer.width();
+    int height = writer.height();
+
+    /// Data for the displaying
+    // Strings
+    QStringList headers;
+    headers << "NOM Prénom" << "Texte ou N° question" << "OBSERVATIONS";
+    QString str_mark = "Note/20 :";
+    QString str_obs = "OBSERVATIONS :";
+
+    // Table Structure
+    int nbRows = 9;
+    int yTable = width*0.068;
+    int heightText = width*0.03;
+    int x2eColumn = width*0.18;
+    int x3eColumn = width*0.42;
+    QList<int> posLinesV;
+    posLinesV << 0 << 18 << 42 << 100;
+
+    int heightRow = (height-yTable-heightText) / (nbRows+1);
+    int yEndTable = yTable + heightText + (nbRows+1)*heightRow;
+
+    /// Style settings
+    // Text Style
+    QFont f = painter.font();
+    f.setPointSize(16);
+    f.setFamily("Times New Roman");
+    f.setBold(true);
+    painter.setFont(f);
+    // Line Style
+    painter.setPen(QPen(Qt::black, 30));
+    // Tools
+    QFontMetrics font = painter.fontMetrics();
+
+    /// Headers of the paper...
+    painter.drawText(0,0," Date :");
+    painter.drawText(width*0.30,0,"Interrogateur :");
+    painter.drawText(width*0.30,heightText*0.8,"Matière :");
+    painter.drawText(width*0.30,heightText*0.8*2,"Classe :");
+    painter.drawText(width*0.80,heightText*0.8,"Salle :");
+
+
+    /// Table Structure
+    // Headers
+    painter.drawLine(0, yTable, width, yTable);
+    painter.drawText((x2eColumn-font.width(headers[0]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[0]);
+    painter.drawText((x2eColumn+x3eColumn-font.width(headers[1]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[1]);
+    painter.drawText((x3eColumn+width-font.width(headers[2]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[2]);
+
+    // H. Lines
+    for(int i=0; i<=nbRows; i++) {
+        int h = yTable + heightText + i*heightRow;
+        painter.drawLine(0, h, width, h);
+        if(i != 0) { // Mark area
+            painter.drawText(0, h-heightText + (heightText-font.height())/2 + font.ascent() + font.leading()/2, " " + str_mark);
+            painter.drawLine(0, h-heightText, x2eColumn, h-heightText);
+        }
+    }
+
+    // Observation row
+    painter.drawText((width-font.width(str_obs))/2, yEndTable-heightRow+(heightText-font.height())/2 + font.ascent() + font.leading()/2, str_obs);
+    painter.drawLine(0, yEndTable, width, yEndTable);
+
+    // V. Lines
+    painter.drawLine(0, yTable, 0, yEndTable);
+    painter.drawLine(width, yTable, width, yEndTable);
+    painter.drawLine(x2eColumn, yTable, x2eColumn, yEndTable-heightRow);
+    painter.drawLine(x3eColumn, yTable, x3eColumn, yEndTable-heightRow);
+
+
+    return true;
+}
+

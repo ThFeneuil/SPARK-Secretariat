@@ -32,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->list_classes, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
     connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
     connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
+    connect(ui->action_Diffusion_Print, SIGNAL(triggered(bool)), this, SLOT(openPrintDialog()));
     connect(ui->button_publish, SIGNAL(clicked(bool)), this, SLOT(openDiffusionManager()));
     connect(ui->spinBox_preparation, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
     connect(ui->spinBox_kholle, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
@@ -197,6 +198,20 @@ void MainWindow::openDiffusionManager() {
     }
 }
 
+void MainWindow::openPrintDialog() {
+    //Get connection information
+    QSqlDatabase db = QSqlDatabase::database();
+
+    if(db.isOpen()) {
+        // Open the manager
+        PrintDialog manager(this);
+        manager.exec();
+    }
+    else {
+        QMessageBox::critical(this, "Erreur", "La connexion à la base de données a échoué");
+    }
+}
+
 void MainWindow::openAboutIt() {
     AboutItDialog dialog(this);
     dialog.exec();
@@ -248,6 +263,7 @@ void MainWindow::kholleurSelected() {
     QListWidgetItem* itemClass = ui->list_classes->currentItem();
     if(itemKholleur && itemClass) {
         ui->layout_duration->setVisible(true);
+        ui->button_addWeek->setVisible(true);
         Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
         Class* cl = (Class*) itemClass->data(Qt::UserRole).toULongLong();
         if(khll && cl) {
@@ -268,6 +284,7 @@ void MainWindow::kholleurSelected() {
 
 void MainWindow::middleAreaEmpty(bool noKholleur, bool noClass) {
     ui->layout_duration->setVisible(false);
+    ui->button_addWeek->setVisible(false);
     if(noKholleur && noClass)
         ui->title_middleArea->setText("Aucun kholleur sélectionné...<br />Aucune classe sélectionnée...");
     else if(noKholleur)

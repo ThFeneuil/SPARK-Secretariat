@@ -18,6 +18,7 @@
 #include "optionsdialog.h"
 #include "diffusionmanager.h"
 #include "printpdf.h"
+#include "printdialog.h"
 
 namespace Ui {
 class MainWindow;
@@ -45,6 +46,7 @@ public slots:
     void openKholleursManager();
     void openOptions();
     void openDiffusionManager();
+    void openPrintDialog();
     void openHelp();
     void openAboutIt();
     void selectKholleur(QString name);
