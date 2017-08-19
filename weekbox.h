@@ -16,6 +16,7 @@
 #include <QKeyEvent>
 #include "storedData/kholleur.h"
 #include "storedData/class.h"
+#include "utilities.h"
 
 #define ALL_MONDAY QDate(1923,1,1)
 
@@ -65,7 +66,5 @@ private:
     QSpinBox* m_spinbox_preparation;
     QSpinBox* m_spinbox_kholle;
 };
-
-QString nameDay(int num);
 
 #endif // WEEKBOX_H

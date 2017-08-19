@@ -6,6 +6,7 @@
 #include <QMessageBox>
 #include <QQueue>
 #include "storedData/kholleur.h"
+#include "managers/updatekholleurdialog.h"
 
 namespace Ui {
 class KholleursManager;
@@ -24,6 +25,7 @@ public slots:
     bool update_list();
     bool add_kholleur();
     bool delete_kholleur();
+    bool update_kholleur(QListWidgetItem *item);
 
 private:
     Ui::KholleursManager *ui;

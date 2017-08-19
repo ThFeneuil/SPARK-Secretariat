@@ -209,7 +209,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
                 painter->setPen(QPen(QColor(Qt::black)));
 
             painter->drawText(posLinesV[0]*width/100, heightText, " "+kholleurs[ts->getId_kholleurs()]->getName());
-            painter->drawText(posLinesV[1]*width/100, heightText, " "+ts->getDate().toString("dddd dd/MM"));
+            painter->drawText(posLinesV[1]*width/100, heightText, " "+nameDay(ts->getDate().dayOfWeek()-1)+ts->getDate().toString(" dd/MM"));
             painter->drawText(posLinesV[2]*width/100, heightText, " "+ts->getTime().toString("hh:mm"));
             QString prep = (ts->getDuration_preparation()) ? " (" + QString::number(ts->getDuration_preparation()) + ")": "";
             painter->drawText(((posLinesV[3]+posLinesV[4])*width/100-font.width(QString::number(ts->getDuration_kholle()) + prep))/2, heightText, QString::number(ts->getDuration_kholle()) + prep);

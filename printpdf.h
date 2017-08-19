@@ -18,6 +18,7 @@
 #include "storedData/class.h"
 #include "storedData/kholleur.h"
 #include "storedData/timeslot.h"
+#include "utilities.h"
 
 class PrintPDF
 {

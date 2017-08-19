@@ -9,6 +9,7 @@ KholleursManager::KholleursManager(QSqlDatabase *db, QWidget *parent) :
     ui->setupUi(this);
     connect(ui->pushButton_add, SIGNAL(clicked()), this, SLOT(add_kholleur()));
     connect(ui->pushButton_delete, SIGNAL(clicked()), this, SLOT(delete_kholleur()));
+    connect(ui->list_kholleurs, SIGNAL(itemDoubleClicked(QListWidgetItem*)), this, SLOT(update_kholleur(QListWidgetItem*)));
 
     // DB
     m_db = db;
@@ -75,18 +76,39 @@ bool KholleursManager::delete_kholleur() {
         QMessageBox::critical(this, "Erreur", "Veuillez sélectionner un kholleur.");
         return false;
     } else {
-        Kholleur* grp = (Kholleur*) item->data(Qt::UserRole).toULongLong();
+        Kholleur* khll = (Kholleur*) item->data(Qt::UserRole).toULongLong();
         int res = QMessageBox::warning(this, "Suppression en cours",
-                "Vous êtes sur le point de supprimer le kholleur <strong>\"" + grp->getName() + "\"</strong>.<br /> Voulez-vous continuer ?",
+                "Vous êtes sur le point de supprimer le kholleur <strong>\"" + khll->getName() + "\"</strong> ainsi que <strong>tous ses horaires de kholles</strong>. Voulez-vous continuer ?",
                 QMessageBox::Yes | QMessageBox::Cancel);
         if(res == QMessageBox::Yes) {
             QSqlQuery query(*m_db);
-            query.prepare("DELETE FROM sec_kholleurs WHERE id=:id");
-            query.bindValue(":id", grp->getId());
+            query.prepare("DELETE FROM sec_exceptions WHERE id_kholles IN (SELECT id FROM sec_kholles WHERE id_kholleurs = :id_kholleurs);");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.exec();
+            query.prepare("DELETE FROM sec_kholles WHERE id_kholleurs = :id_kholleurs");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.exec();
+            query.prepare("DELETE FROM sec_kholleurs WHERE id=:id;");
+            query.bindValue(":id", khll->getId());
             query.exec();
 
-            update_list();;
+            update_list();
         }
+    }
+
+    return true;
+}
+
+bool KholleursManager::update_kholleur(QListWidgetItem* item) {
+    if(item == NULL) {
+        QMessageBox::critical(this, "Erreur", "Veuillez sélectionner un kholleur.");
+        return false;
+    } else {
+        Kholleur* khll = (Kholleur*) item->data(Qt::UserRole).toULongLong();
+        UpdateKholleurDialog dialog(m_db, khll, this);
+        dialog.exec();
+
+        update_list();
     }
 
     return true;

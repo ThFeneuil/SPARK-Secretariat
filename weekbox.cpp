@@ -1,18 +1,5 @@
 #include "weekbox.h"
 
-QString nameDay(int num) {
-    switch(num) {
-        case 0: return "Lundi";
-        case 1: return "Mardi";
-        case 2: return "Mercredi";
-        case 3: return "Jeudi";
-        case 4: return "Vendredi";
-        case 5: return "Samedi";
-        case 6: return "Dimanche";
-    }
-    return "";
-}
-
 WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QWidget *parent, QList<WeekBox *> *links) : QGroupBox(parent)
 {
     installEventFilter(this);
@@ -178,9 +165,7 @@ void WeekBox::addHour() {
     query.prepare("INSERT INTO sec_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle) VALUES(:id_kholleurs, :id_classes, :date, :time, :nb_students, :duration_preparation, :duration_kholle)");
     query.bindValue(":id_kholleurs", m_kholleur->getId());
     query.bindValue(":id_classes", m_class->getId());
-    if(m_isWeekModel)
-            query.bindValue(":date", m_monday.toString("yyyy-MM-dd"));
-    else    query.bindValue(":date", m_monday.addDays(m_days->currentData(Qt::UserRole).toInt()).toString("yyyy-MM-dd"));
+    query.bindValue(":date", m_monday.addDays(m_days->currentData(Qt::UserRole).toInt()).toString("yyyy-MM-dd"));
     query.bindValue(":time", m_hour->time().toString("hh:mm"));
     query.bindValue(":nb_students", m_nbStudents->value());
     query.bindValue(":duration_preparation", m_spinbox_preparation->value());
