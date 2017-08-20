@@ -9,6 +9,7 @@
 #include "printpdf.h"
 #include "storedData/class.h"
 #include "storedData/kholleur.h"
+#include "storedData/subject.h"
 
 namespace Ui {
 class DiffusionManager;
@@ -33,6 +34,7 @@ private:
 
     QMap<int, Class*> m_classes;
     QMap<int, Kholleur*> m_kholleurs;
+    QMap<int, Subject*> m_subjects;
 };
 
 #endif // DIFFUSIONMANAGER_H

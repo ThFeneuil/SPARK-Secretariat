@@ -11,6 +11,7 @@ TimeSlot::TimeSlot()
     m_is_exception = false;
     m_duration_preparation = 0;
     m_duration_kholle = 0;
+    m_id_subjects = 0;
 }
 
 TimeSlot::~TimeSlot() {
@@ -45,6 +46,9 @@ int TimeSlot::getDuration_preparation() const {
 int TimeSlot::getDuration_kholle() const {
     return m_duration_kholle;
 }
+int TimeSlot::getId_subjects() const {
+    return m_id_subjects;
+}
 
 //Setters
 void TimeSlot::setId(int id) {
@@ -74,3 +78,7 @@ void TimeSlot::setDuration_preparation(int duration_preparation) {
 void TimeSlot::setDuration_kholle(int duration_kholle) {
     m_duration_kholle = duration_kholle;
 }
+void TimeSlot::setId_subjects(int id_subjects) {
+    m_id_subjects = id_subjects;
+}
+

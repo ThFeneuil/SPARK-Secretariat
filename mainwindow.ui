@@ -153,7 +153,7 @@
                <item>
                 <widget class="QPushButton" name="pushButton_all_out">
                  <property name="toolTip">
-                  <string>Appliquer à tous les classes</string>
+                  <string>Appliquer à toutes les classes</string>
                  </property>
                  <property name="text">
                   <string/>
@@ -237,6 +237,13 @@
        <number>0</number>
       </property>
       <item>
+       <widget class="QLabel" name="label_general_info">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
        <spacer name="horizontalSpacer">
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -278,8 +285,6 @@
     </property>
     <addaction name="action_File_Create"/>
     <addaction name="action_File_Open"/>
-    <addaction name="separator"/>
-    <addaction name="action_File_Settings"/>
     <addaction name="separator"/>
     <addaction name="action_File_Quit"/>
    </widget>

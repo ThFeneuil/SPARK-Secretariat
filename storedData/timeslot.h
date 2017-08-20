@@ -19,6 +19,7 @@ public:
     bool getIs_exception() const;
     int getDuration_preparation() const;
     int getDuration_kholle() const;
+    int getId_subjects() const;
 
     //Setters
     void setId(int id);
@@ -30,6 +31,7 @@ public:
     void setIs_exception(bool is_exception);
     void setDuration_preparation(int duration_preparation);
     void setDuration_kholle(int duration_kholle);
+    void setId_subjects(int id_subjects);
 
 private:
     int m_id;
@@ -41,6 +43,7 @@ private:
     bool m_is_exception;
     int m_duration_preparation;
     int m_duration_kholle;
+    int m_id_subjects;
 };
 
 #endif // TIMESLOT_H

@@ -29,7 +29,7 @@ bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSql
 
     for(int i=0; i<listClasses.length(); i++) {
         if(i != 0)
-            qDebug() << writer.newPage();
+            writer.newPage();
         if(! drawPage(&writer, &painter, monday_date, listClasses[i], db))
             return false;
     }
@@ -58,7 +58,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
         kholleurs.insert(khll->getId(), khll);
     }
 
-    QMap<QString, QMap<QDateTime, TimeSlot*>> timeslots;
+    QMap<QString, QMap<QString, TimeSlot*>> timeslots;
     int nbRows = 0;
 
     query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle FROM sec_kholles WHERE "
@@ -82,7 +82,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
         ts->setDuration_kholle(query.value(6).toInt());
 
         Kholleur* khll = kholleurs[ts->getId_kholleurs()];
-        timeslots[khll->getName() + "_" + QString::number(khll->getId())][QDateTime(ts->getDate(), ts->getTime())] = ts;
+        timeslots[khll->getName() + "_" + QString::number(khll->getId())][QDateTime(ts->getDate(), ts->getTime()).toString("yyyy-MM-dd hh:mm")+QString::number(ts->getId())] = ts;
 
         nbRows++;
     }
@@ -112,15 +112,10 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
         ts->setDuration_kholle(query.value(6).toInt());
 
         Kholleur* khll = kholleurs[ts->getId_kholleurs()];
-        timeslots[khll->getName() + "_" + QString::number(khll->getId())][QDateTime(ts->getDate(), ts->getTime())] = ts;
+        timeslots[khll->getName() + "_" + QString::number(khll->getId())][QDateTime(ts->getDate(), ts->getTime()).toString("yyyy-MM-dd hh:mm")+QString::number(ts->getId())] = ts;
 
         nbRows++;
     }
-
-    qDebug() << nbRows;
-    qDebug() << width;
-    qDebug() << height;
-
 
     /// Data for the displaying
     // Introduction
@@ -138,10 +133,14 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
 
     // Table
     QList<int> posLinesV;
-    posLinesV << 0 << 33 << 55 << 75 << 90 << 100;
+    posLinesV << 0 << 38 << 60 << 75 << 90 << 100;
     QList<QString> titleColumns;
     titleColumns << "Kholleurs" << "Jour" << "Horaires*" << "Durée**" << "Elèves";
     int row_height = (height - heightIntro - heightFootnotes) / (nbRows+1);
+    int maxHeightRow = width*2/30;
+    if(row_height > maxHeightRow)
+        row_height = maxHeightRow;
+    int yEndTable = row_height*(nbRows+1) + heightIntro;
 
     /// CALCUL POINT SIZE FONT
     // Point Size Font Title
@@ -165,9 +164,6 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
     }
     headersFont.setPointSize(min_psFont);
 
-
-
-
     /// DRAWING...
     // Title
     painter->setFont(titleFont);
@@ -180,7 +176,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
 
     // Structure Table
     for(int i=0; i<posLinesV.length(); i++) {
-        painter->drawLine(posLinesV[i]*width/100, heightIntro, posLinesV[i]*width/100, height-heightFootnotes);
+        painter->drawLine(posLinesV[i]*width/100, heightIntro, posLinesV[i]*width/100, yEndTable);
     }
     for(int i=0; i<=nbRows+1; i++) {
         painter->drawLine(0, heightIntro+row_height*i, width, heightIntro+row_height*i);
@@ -192,7 +188,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
     }
 
     // Display data
-    QList<QMap<QDateTime, TimeSlot*>> tss = timeslots.values();
+    QList<QMap<QString, TimeSlot*>> tss = timeslots.values();
     QList<QList<TimeSlot*>> data;
     for(int i=0; i<tss.length(); i++) {
         data.append(tss[i].values());
@@ -220,8 +216,8 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
     }
 
 
-    painter->drawText(0, height-heightFootnotes + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote1);
-    painter->drawText(0, height-heightFootnotes + heightFootnotes/2 + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote2);
+    painter->drawText(0, yEndTable + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote1);
+    painter->drawText(0, yEndTable + heightFootnotes/2 + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote2);
 
 
     // WILL FREE MEMORIES

@@ -16,6 +16,7 @@
 #include <QKeyEvent>
 #include "storedData/kholleur.h"
 #include "storedData/class.h"
+#include "storedData/subject.h"
 #include "utilities.h"
 
 #define ALL_MONDAY QDate(1923,1,1)
@@ -39,7 +40,7 @@ class WeekBox : public QGroupBox
 {
     Q_OBJECT
 public:
-    explicit WeekBox(QDate monday, Kholleur* khll, Class* cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QWidget *parent = 0, QList<WeekBox*>* links = NULL);
+    explicit WeekBox(QDate monday, Kholleur* khll, Class* cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QComboBox* comboBox_subjects, QList<Subject*>* list_subjects, QWidget *parent = 0, QList<WeekBox*>* links = NULL);
     ~WeekBox();
     void displayHours();
 
@@ -65,6 +66,9 @@ private:
     QSqlDatabase m_db;
     QSpinBox* m_spinbox_preparation;
     QSpinBox* m_spinbox_kholle;
+    QComboBox* m_comboBox_subjects;
+    QList<Subject*>* m_list_subjects;
+    QMap<int, Subject*> m_subjects;
 };
 
 #endif // WEEKBOX_H

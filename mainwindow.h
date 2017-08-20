@@ -21,6 +21,7 @@
 #include "diffusionmanager.h"
 #include "printpdf.h"
 #include "printdialog.h"
+#include "preferences.h"
 
 namespace Ui {
 class MainWindow;
@@ -62,6 +63,8 @@ public slots:
     void addWeek();
     void saveDurations();
     void saveDurationsAll();
+    void openSEC(bool withPref = false);
+    void createSEC();
 
 private:
     Ui::MainWindow *ui;

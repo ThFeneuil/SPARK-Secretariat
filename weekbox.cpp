@@ -1,6 +1,6 @@
 #include "weekbox.h"
 
-WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QWidget *parent, QList<WeekBox *> *links) : QGroupBox(parent)
+WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QComboBox* comboBox_subjects, QList<Subject*>* list_subjects, QWidget *parent, QList<WeekBox *> *links) : QGroupBox(parent)
 {
     installEventFilter(this);
 
@@ -12,6 +12,10 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
     m_db = QSqlDatabase::database();
     m_spinbox_preparation = spinbox_preparation;
     m_spinbox_kholle = spinbox_kholle;
+    m_comboBox_subjects = comboBox_subjects;
+    m_list_subjects = list_subjects;
+    for(int i=0; i<m_list_subjects->count(); i++)
+        m_subjects[m_list_subjects->at(i)->getId()] = m_list_subjects->at(i);
 
     if(m_isWeekModel) {
         QPalette pal = palette();
@@ -81,7 +85,7 @@ void WeekBox::displayHours() {
 
     if(m_class) {
         QSqlQuery query(m_db);
-        query.prepare("SELECT id, date, time, nb_students, duration_preparation, duration_kholle FROM sec_kholles WHERE "
+        query.prepare("SELECT id, date, time, nb_students, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
                       "id_kholleurs = :id_kholleurs AND id_classes = :id_classes AND (date >= :start AND date <= :end) "
                       "ORDER BY date, time"
                       );
@@ -98,7 +102,8 @@ void WeekBox::displayHours() {
             int nb_students = query.value(3).toInt();
             int duration_preparation = query.value(4).toInt();
             int duration_kholle = query.value(5).toInt();
-            QString text = " ("+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min)" + " : " + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
+            int id_subjects = query.value(6).toInt();
+            QString text = " ("+(id_subjects ? m_subjects[id_subjects]->getName() : "...")+", "+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min)" + " : " + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
             if(m_isWeekModel)
                     text = nameDay(date.dayOfWeek()-1) + " " + time.toString("hh:mm") + text;
             else    text = nameDay(date.dayOfWeek()-1) + date.toString(" dd/MM/yyyy") + " " + time.toString("hh:mm") + text;
@@ -112,7 +117,7 @@ void WeekBox::displayHours() {
         }
 
         if(! m_isWeekModel) {
-            query.prepare("SELECT id, date, time, nb_students, duration_preparation, duration_kholle FROM sec_kholles WHERE "
+            query.prepare("SELECT id, date, time, nb_students, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
                           "id_kholleurs = :id_kholleurs AND id_classes = :id_classes AND (date <= '1924-01-01') "
                           "AND id NOT IN "
                           "(SELECT id_kholles FROM sec_exceptions WHERE monday=:monday) "
@@ -132,7 +137,8 @@ void WeekBox::displayHours() {
                 int nb_students = query.value(3).toInt();
                 int duration_preparation = query.value(4).toInt();
                 int duration_kholle = query.value(5).toInt();
-                QString text = " ("+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min)" + " : " + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
+                int id_subjects = query.value(6).toInt();
+                QString text = " ("+(id_subjects ? m_subjects[id_subjects]->getName() : "...")+", "+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min)" + " : " + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
                 text = nameDay(date.dayOfWeek()-1) + date.toString(" dd/MM/yyyy") + " " + time.toString("hh:mm") + text;
 
                 QListWidgetItem* item = new QListWidgetItem(text);
@@ -162,7 +168,7 @@ void WeekBox::updateSuffixNbStudents(int nb) {
 
 void WeekBox::addHour() {
     QSqlQuery query(m_db);
-    query.prepare("INSERT INTO sec_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle) VALUES(:id_kholleurs, :id_classes, :date, :time, :nb_students, :duration_preparation, :duration_kholle)");
+    query.prepare("INSERT INTO sec_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle, id_subjects) VALUES(:id_kholleurs, :id_classes, :date, :time, :nb_students, :duration_preparation, :duration_kholle, :id_subjects)");
     query.bindValue(":id_kholleurs", m_kholleur->getId());
     query.bindValue(":id_classes", m_class->getId());
     query.bindValue(":date", m_monday.addDays(m_days->currentData(Qt::UserRole).toInt()).toString("yyyy-MM-dd"));
@@ -170,6 +176,7 @@ void WeekBox::addHour() {
     query.bindValue(":nb_students", m_nbStudents->value());
     query.bindValue(":duration_preparation", m_spinbox_preparation->value());
     query.bindValue(":duration_kholle", m_spinbox_kholle->value());
+    query.bindValue(":id_subjects", ((Subject*) m_comboBox_subjects->currentData().toULongLong())->getId());
     query.exec();
 
     m_hour->setTime(m_hour->time().addSecs(m_spinbox_kholle->value()*60));

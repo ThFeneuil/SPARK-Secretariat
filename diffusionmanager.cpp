@@ -23,6 +23,15 @@ DiffusionManager::DiffusionManager(QWidget *parent) :
         m_kholleurs.insert(khll->getId(), khll);
     }
 
+    // Build the map associating an ID with its subjects
+    query.exec("SELECT id, name FROM sec_subjects");
+    while (query.next()) {
+        Subject* subj = new Subject();
+        subj->setId(query.value(0).toInt());
+        subj->setName(query.value(1).toString());
+        m_subjects.insert(subj->getId(), subj);
+    }
+
     // Build the map associating an ID with its class
     query.exec("SELECT id, name, by_server, by_email, by_paper, email FROM sec_classes ORDER BY UPPER(name)");
     while (query.next()) {
@@ -106,7 +115,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
     for(int num=1; num<=2; num++) {
         switch(num) {
         case 1:
-            query.prepare("SELECT id, date, time, nb_students, id_kholleurs FROM sec_kholles WHERE "
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_kholle, id_subjects FROM sec_kholles WHERE "
                           "id_classes = :id_classes AND (date >= :start AND date <= :end) "
                           "ORDER BY date, time"
                           );
@@ -117,7 +126,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             break;
         case 2:
         default:
-            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle FROM sec_kholles WHERE "
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
                           "id_classes = :id_classes AND (date <= '1924-01-01') "
                           "AND id NOT IN "
                           "(SELECT id_kholles FROM sec_exceptions WHERE monday=:monday) "
@@ -139,12 +148,14 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             int id_kholleurs = query.value(4).toInt();
             int duration_preparation = query.value(5).toInt();
             int duration_kholle = query.value(6).toInt();
+            int id_subjects = query.value(7).toInt();
 
             QString strRow = QString::number(numRow);
 
             queryDiffuse_str += (queryDiffuse_str != "") ? ", " : "";
             queryDiffuse_str += "(:time"+strRow+", :time_end"+strRow+", :time_start"+strRow+", ";
-            queryDiffuse_str += ":nameKholleur"+strRow+", :date"+strRow+", :nbStudents"+strRow+", :nameClass"+strRow+")";
+            queryDiffuse_str += ":nameKholleur"+strRow+", :date"+strRow+", :nbStudents"+strRow+", :nameClass"+strRow+", :subject"+strRow+")";
+
             queryDiffuse.bindValue(":time"+strRow, time.addSecs(duration_preparation*60).toString("hh:mm:ss"));
             queryDiffuse.bindValue(":time_end"+strRow, time.addSecs((duration_preparation+duration_kholle)*60).toString("hh:mm:ss"));
             queryDiffuse.bindValue(":time_start"+strRow, time.toString("hh:mm:ss"));
@@ -152,12 +163,12 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             queryDiffuse.bindValue(":date"+strRow, date.toString("yyyy-MM-dd"));
             queryDiffuse.bindValue(":nbStudents"+strRow, QString::number(nbStudents));
             queryDiffuse.bindValue(":nameClass"+strRow, cls->getName());
+            queryDiffuse.bindValue(":subject"+strRow, (id_subjects ? m_subjects[id_subjects]->getName() : "..."));
          }
     }
 
     if(queryDiffuse_str != "") {
-        queryDiffuse_str = "INSERT INTO spark_timeslots(time, time_end, time_start, kholleur, date, nb_pupils, class) VALUES"+queryDiffuse_str+";";
-        qDebug() << queryDiffuse_str;
+        queryDiffuse_str = "INSERT INTO spark_timeslots(time, time_end, time_start, kholleur, date, nb_pupils, class, subject) VALUES"+queryDiffuse_str+";";
         queryDiffuse.prepare(queryDiffuse_str);
         queryDiffuse.exec();
     }

@@ -81,6 +81,8 @@ bool SubjectsManager::delete_subject() {
                 QMessageBox::Yes | QMessageBox::Cancel);
         if(res == QMessageBox::Yes) {
             QSqlQuery query(*m_db);
+            query.prepare("UPDATE sec_kholles SET id_subjects = 0 WHERE id_subjects=:id_subjects");
+            query.bindValue(":id_subjects", subj->getId());
             query.prepare("DELETE FROM sec_subjects WHERE id=:id");
             query.bindValue(":id", subj->getId());
             query.exec();

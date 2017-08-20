@@ -31,7 +31,8 @@ HEADERS += \
     utilities.h \
     storedData/subject.h \
     managers/subjectsmanager.h \
-    storedData/parameterskholleurclass.h
+    storedData/parameterskholleurclass.h \
+    preferences.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -53,7 +54,8 @@ SOURCES += \
     utilities.cpp \
     storedData/subject.cpp \
     managers/subjectsmanager.cpp \
-    storedData/parameterskholleurclass.cpp
+    storedData/parameterskholleurclass.cpp \
+    preferences.cpp
 
 RESOURCES += \
     secre.qrc

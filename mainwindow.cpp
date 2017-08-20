@@ -15,33 +15,29 @@ MainWindow::MainWindow(QWidget *parent) :
     m_weekboxes->append(NULL);
     m_firstMonday = QDate::currentDate().addDays(1-QDate::currentDate().dayOfWeek());
 
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName("data.db");
-    if (!db.open()) {
-        QMessageBox::critical(NULL, "Echec", "Impossible d'ouvrir la base de données...");
-    }
-
-    initListsKholleursClassesSubjects();
-
+    connect(ui->action_File_Create, SIGNAL(triggered(bool)), this, SLOT(createSEC()));
+    connect(ui->action_File_Open, SIGNAL(triggered(bool)), this, SLOT(openSEC()));
+    connect(ui->action_File_Quit, SIGNAL(triggered(bool)), this, SLOT(close()));
     connect(ui->action_DB_Classes, SIGNAL(triggered()), this, SLOT(openClassesManager()));
     connect(ui->action_DB_Kholleurs, SIGNAL(triggered()), this, SLOT(openKholleursManager()));
     connect(ui->action_DB_Subjects, SIGNAL(triggered(bool)), this, SLOT(openSubjectsManager()));
+    connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
+    connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
+    connect(ui->action_Diffusion_Print, SIGNAL(triggered(bool)), this, SLOT(openPrintDialog()));
     connect(ui->action_Help, SIGNAL(triggered()), this, SLOT(openHelp()));
     connect(ui->action_AboutIt, SIGNAL(triggered()), this, SLOT(openAboutIt()));
+
     connect(ui->edit_kholleurs, SIGNAL(textChanged(QString)), this, SLOT(selectKholleur(QString)));
     connect(ui->edit_classes, SIGNAL(textChanged(QString)), this, SLOT(selectClass(QString)));
     connect(ui->list_kholleurs, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
     connect(ui->list_classes, SIGNAL(currentRowChanged(int)), this, SLOT(kholleurSelected()));
-    connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
-    connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
-    connect(ui->action_Diffusion_Print, SIGNAL(triggered(bool)), this, SLOT(openPrintDialog()));
     connect(ui->button_publish, SIGNAL(clicked(bool)), this, SLOT(openDiffusionManager()));
     connect(ui->spinBox_preparation, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
     connect(ui->spinBox_kholle, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
     connect(ui->comboBox_subjects, SIGNAL(currentIndexChanged(int)), this, SLOT(saveDurations()));
     connect(ui->pushButton_all_out, SIGNAL(clicked(bool)), this, SLOT(saveDurationsAll()));
 
-    displayLists();
+    openSEC(true);
 
     if(ui->list_kholleurs->count() > 0)
         ui->list_kholleurs->setCurrentRow(0);
@@ -70,11 +66,33 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::updateWindow() {
+    QSqlDatabase db = QSqlDatabase::database();
+
+    if(db.databaseName() == "")
+        db.close();
+
+    ui->action_DB_Classes->setEnabled(db.isOpen());
+    ui->action_DB_Kholleurs->setEnabled(db.isOpen());
+    ui->action_DB_Subjects->setEnabled(db.isOpen());
+    ui->action_Diffusion_options->setEnabled(db.isOpen());
+    ui->action_Diffusion_Diffuse->setEnabled(db.isOpen());
+    ui->action_Diffusion_Print->setEnabled(db.isOpen());
+    ui->list_kholleurs->setEnabled(db.isOpen());
+    ui->list_classes->setEnabled(db.isOpen());
+    ui->edit_kholleurs->setEnabled(db.isOpen());
+    ui->edit_classes->setEnabled(db.isOpen());
+    ui->button_publish->setEnabled(db.isOpen());
+
+    ui->layout_duration->setVisible(false);
+    ui->button_addWeek->setVisible(false);
+
+    if(! db.isOpen())
+        return;
+
     Kholleur* khllSelected = (ui->list_kholleurs->currentItem()) ? (Kholleur*) ui->list_kholleurs->currentItem()->data(Qt::UserRole).toULongLong() : NULL;
     Class* clSelected = (ui->list_classes->currentItem()) ? ((Class*) ui->list_classes->currentItem()->data(Qt::UserRole).toULongLong()) : NULL;
     int idKholleur = khllSelected ? khllSelected->getId() : 0;
     int idClass = clSelected ? clSelected->getId() : 0;
-
 
     initListsKholleursClassesSubjects();
     displayLists();
@@ -89,6 +107,8 @@ void MainWindow::updateWindow() {
         if(cl && cl->getId() == idClass)
             ui->list_classes->setCurrentRow(i);
     }
+
+    kholleurSelected();
 }
 void MainWindow::initListsKholleursClassesSubjects() {
     while(m_list_kholleurs->count() > 0) {
@@ -320,8 +340,8 @@ void MainWindow::kholleurSelected() {
                 if(m_weekboxes->at(i))
                     delete m_weekboxes->at(i);
                 if(i==0)
-                        m_weekboxes->replace(i, new WeekBox(ALL_MONDAY, khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, 0, m_weekboxes));
-                else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, 0));
+                        m_weekboxes->replace(i, new WeekBox(ALL_MONDAY, khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0, m_weekboxes));
+                else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
                 ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(i));
             }
         } else
@@ -359,7 +379,7 @@ void MainWindow::addWeek() {
         Class* cl = (ui->list_classes->currentItem()) ? (Class*) ui->list_classes->currentItem()->data(Qt::UserRole).toULongLong() : NULL;
         if(khll) {
             int n = m_weekboxes->count();
-            m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7*n), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, 0));
+            m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7*n), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
             ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(n));
         }
     }
@@ -565,4 +585,116 @@ void MainWindow::loadParametersKholleursClasses() {
         }
     }
     db.commit();
+}
+
+void MainWindow::openSEC(bool withPref) {
+    Preferences pref;
+    QString filename = "";
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    if(withPref) {
+        filename = pref.file();
+        if(filename != "") {
+            db.setDatabaseName(filename);
+        } else {
+            openSEC(false);
+            return;
+        }
+    } else {
+        filename = QFileDialog::getOpenFileName(NULL, "Ouvrir...", pref.dir(),  "SEC (*.sec)");
+        if(QFile::exists(filename))
+            pref.setFile(filename);
+        if(filename != "") {
+            pref.setDir(QFileInfo(filename).absoluteDir().absolutePath());
+            db.setDatabaseName(filename);
+        } else {
+            updateWindow();
+            return;
+        }
+    }
+
+    QString textFile = (filename.count()>90) ? "..." + filename.right(90) : filename;
+    if(db.open()) {
+        ui->label_general_info->setText("Fichier : "+textFile+" >>> <strong>Chargé !</strong>");
+    } else {
+        QMessageBox::critical(NULL, "Echec", "Impossible d'ouvrir la base de données...");
+        ui->label_general_info->setText("Fichier : "+textFile+" >>> <strong>ECHEC !</strong>");
+    }
+    updateWindow();
+}
+
+void MainWindow::createSEC() {
+    //Try to load directory preferences
+    Preferences pref;
+    QString pref_path = pref.dir();
+
+    //Get file name
+    QString filename = QFileDialog::getSaveFileName(this, "Enregistrer sous...",
+                                                    pref_path + QDir::separator() + "horaires-kholles",  "SEC (*.sec)");
+
+    if(filename == "") {
+        updateWindow();
+        return;
+    }
+
+    //Save directory in preferences
+    QString dirpath = QFileInfo(filename).absoluteDir().absolutePath();
+    pref.setDir(dirpath);
+    pref.setFile(filename);
+    QString textFile = (filename.count()>90) ? "..." + filename.right(90) : filename;
+
+    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName(filename);
+    if (!db.open()) {
+        updateWindow();
+        QMessageBox::critical(NULL, "Echec", "Impossible d'ouvrir la base de données générée...");
+        ui->label_general_info->setText("Fichier : "+textFile+" >>> <strong>ECHEC !</strong>");
+        return;
+    } else {
+        ui->label_general_info->setText("Fichier : "+textFile+" >>> <strong>Chargé !</strong>");
+    }
+
+    QSqlQuery qCreate(db);
+    qCreate.exec("CREATE TABLE `sec_classes` ( "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                     "`name`	TEXT NOT NULL, "
+                     "`by_server`	INTEGER NOT NULL DEFAULT 0, "
+                     "`by_email`	INTEGER NOT NULL DEFAULT 0, "
+                     "`by_paper`	INTEGER NOT NULL DEFAULT 0, "
+                     "`email`	TEXT NOT NULL DEFAULT '' "
+                 ");");
+    qCreate.exec("CREATE TABLE `sec_exceptions` ( "
+                     "`id`	INTEGER PRIMARY KEY AUTOINCREMENT, "
+                     "`id_kholles`	INTEGER, "
+                     "`monday`	TEXT "
+                 ");");
+    qCreate.exec("CREATE TABLE `sec_kholles` ( "
+                     "`id`	INTEGER PRIMARY KEY AUTOINCREMENT, "
+                     "`id_kholleurs`	INTEGER DEFAULT 0, "
+                     "`id_classes`	INTEGER DEFAULT 0, "
+                     "`date`	TEXT DEFAULT '', "
+                     "`time`	TEXT DEFAULT '', "
+                     "`nb_students`	INTEGER DEFAULT 0, "
+                     "`duration_preparation`	INTEGER DEFAULT 0, "
+                     "`duration_kholle`	INTEGER DEFAULT 0, "
+                     "`id_subjects`	INTEGER DEFAULT 0 "
+                  ");");
+    qCreate.exec("CREATE TABLE `sec_kholleurs` ( "
+                     "`id`	INTEGER PRIMARY KEY AUTOINCREMENT, "
+                     "`name`	TEXT DEFAULT '' "
+                ");");
+    qCreate.exec("CREATE TABLE `sec_kholleurs_classes` ( "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                     "`id_classes`	INTEGER NOT NULL DEFAULT 0, "
+                     "`id_kholleurs`	INTEGER NOT NULL DEFAULT 0, "
+                     "`duration_preparation`	INTEGER NOT NULL DEFAULT 0, "
+                     "`duration_kholle`	INTEGER NOT NULL DEFAULT 0, "
+                     "`id_subjects`	INTEGER NOT NULL DEFAULT 0 "
+                 ");");
+    qCreate.exec("CREATE TABLE `sec_subjects` ( "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                     "`name`	TEXT DEFAULT '' "
+                 ");");
+
+    QMessageBox::information(NULL, "Succès", "Votre base de données a été créée.<br />Vous pouvez dès maintenant l'utiliser. :p");
+    updateWindow();
 }
