@@ -13,6 +13,7 @@
 #include "managers/classesmanager.h"
 #include "managers/kholleursmanager.h"
 #include "managers/subjectsmanager.h"
+#include "storedData/parameterskholleurclass.h"
 #include "aboutitdialog.h"
 #include "contactdialog.h"
 #include "weekbox.h"
@@ -38,6 +39,7 @@ public:
     void initListsKholleursClassesSubjects();
     void updateWindow();
     void displayDurations();
+    void loadParametersKholleursClasses();
 
 protected:
     bool eventFilter(QObject* obj, QEvent *event);
@@ -70,6 +72,7 @@ private:
     QList<WeekBox*>* m_weekboxes;
     QDate m_firstMonday;
     QSqlDatabase* m_db;
+    QMap<int, QMap<int, ParametersKholleurClass>> m_paraKC;
 };
 
 #endif // MAINWINDOW_H

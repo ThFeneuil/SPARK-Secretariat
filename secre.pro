@@ -30,7 +30,8 @@ HEADERS += \
     managers/updatekholleurdialog.h \
     utilities.h \
     storedData/subject.h \
-    managers/subjectsmanager.h
+    managers/subjectsmanager.h \
+    storedData/parameterskholleurclass.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -51,7 +52,8 @@ SOURCES += \
     managers/updatekholleurdialog.cpp \
     utilities.cpp \
     storedData/subject.cpp \
-    managers/subjectsmanager.cpp
+    managers/subjectsmanager.cpp \
+    storedData/parameterskholleurclass.cpp
 
 RESOURCES += \
     secre.qrc

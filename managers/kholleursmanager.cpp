@@ -57,7 +57,7 @@ bool KholleursManager::add_kholleur() {
         return false;
     } else {
         QSqlQuery query(*m_db);
-        query.prepare("INSERT INTO sec_kholleurs(name, duration_preparation, duration_kholle) VALUES(:name, 0, 60)");
+        query.prepare("INSERT INTO sec_kholleurs(name) VALUES(:name)");
         query.bindValue(":name", name);
         query.exec();
 
@@ -86,6 +86,9 @@ bool KholleursManager::delete_kholleur() {
             query.bindValue(":id_kholleurs", khll->getId());
             query.exec();
             query.prepare("DELETE FROM sec_kholles WHERE id_kholleurs = :id_kholleurs");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.exec();
+            query.prepare("DELETE FROM sec_kholleurs_classes WHERE id_kholleurs = :id_kholleurs");
             query.bindValue(":id_kholleurs", khll->getId());
             query.exec();
             query.prepare("DELETE FROM sec_kholleurs WHERE id=:id;");

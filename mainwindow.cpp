@@ -137,6 +137,8 @@ void MainWindow::initListsKholleursClassesSubjects() {
         subj->setName(query.value(1).toString());
         m_list_subjects->append(subj);
     }
+
+    loadParametersKholleursClasses();
 }
 
 void MainWindow::displayLists() {
@@ -416,7 +418,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent *event) {
                       && ((void*) listWidget->currentItem()->data(Qt::UserRole).toULongLong()) == NULL ) {
                 QSqlQuery query(QSqlDatabase::database());
                 if(obj == ui->edit_kholleurs)
-                        query.prepare("INSERT INTO sec_kholleurs(name, duration_preparation, duration_kholle) VALUES(:name, 0, 60)");
+                        query.prepare("INSERT INTO sec_kholleurs(name) VALUES(:name)");
                 else    query.prepare("INSERT INTO sec_classes(name) VALUES(:name)");
                 query.bindValue(":name", ((QLineEdit*) obj)->text());
                 query.exec();
@@ -455,31 +457,14 @@ void MainWindow::displayDurations() {
         if(khll && cl) {
             ui->spinBox_preparation->setEnabled(true);
             ui->spinBox_kholle->setEnabled(true);
-            QSqlQuery query(QSqlDatabase::database());
-            query.prepare("SELECT duration_preparation, duration_kholle, id_subjects FROM sec_kholleurs_classes WHERE id_classes=:id_classes AND id_kholleurs=:id_kholleurs");
-            query.bindValue(":id_kholleurs", khll->getId());
-            query.bindValue(":id_classes", cl->getId());
-            query.exec();
-            if(query.next()) {
-                ui->spinBox_preparation->setValue(query.value(0).toInt());
-                ui->spinBox_kholle->setValue(query.value(1).toInt());
-                int id_subjects = query.value(2).toInt();
-                ui->comboBox_subjects->setCurrentIndex(0);
-                for(int i=0; i<m_list_subjects->count(); i++) {
-                    if(m_list_subjects->at(i)->getId() == id_subjects)
-                        ui->comboBox_subjects->setCurrentIndex(i+1);
-                }
-            } else {
-                query.prepare("INSERT INTO sec_kholleurs_classes(id_classes, id_kholleurs, duration_preparation, duration_kholle, id_subjects) VALUES(:id_classes, :id_kholleurs, :duration_preparation, :duration_kholle, :id_subjects)");
-                query.bindValue(":id_classes", cl->getId());
-                query.bindValue(":id_kholleurs", khll->getId());
-                query.bindValue(":duration_preparation", 0);
-                query.bindValue(":duration_kholle", 60);
-                query.bindValue(":id_subjects", 0);
-                query.exec();
-                ui->spinBox_preparation->setValue(0);
-                ui->spinBox_kholle->setValue(60);
-                ui->comboBox_subjects->setCurrentIndex(0);
+
+            ui->spinBox_preparation->setValue(m_paraKC[khll->getId()][cl->getId()].duration_preparation);
+            ui->spinBox_kholle->setValue(m_paraKC[khll->getId()][cl->getId()].duration_kholle);
+            int id_subjects = m_paraKC[khll->getId()][cl->getId()].id_subjects;
+            ui->comboBox_subjects->setCurrentIndex(0);
+            for(int i=0; i<m_list_subjects->count(); i++) {
+                if(m_list_subjects->at(i)->getId() == id_subjects)
+                    ui->comboBox_subjects->setCurrentIndex(i+1);
             }
             return;
         }
@@ -504,6 +489,9 @@ void MainWindow::saveDurations() {
             query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
             query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
             query.exec();
+            m_paraKC[khll->getId()][cl->getId()].duration_preparation = ui->spinBox_preparation->value();
+            m_paraKC[khll->getId()][cl->getId()].duration_kholle = ui->spinBox_kholle->value();
+            m_paraKC[khll->getId()][cl->getId()].id_subjects = (subj) ? subj->getId() : 0;
         }
     }
 }
@@ -516,28 +504,65 @@ void MainWindow::saveDurationsAll() {
         if(khll) {
             Subject* subj = (Subject*) ui->comboBox_subjects->currentData().toULongLong();
             QSqlQuery query(QSqlDatabase::database());
-            for(int i=0; i<m_list_classes->count(); i++) {
-                query.prepare("UPDATE sec_kholleurs_classes SET duration_preparation=:duration_preparation, duration_kholle=:duration_kholle, id_subjects=:id_subjects WHERE id_kholleurs=:id_kholleurs AND id_classes=:id_classes");
-                query.bindValue(":id_kholleurs", khll->getId());
-                query.bindValue(":id_classes", m_list_classes->at(i)->getId());
-                query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
-                query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
-                query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
-                query.exec();
+            query.prepare("UPDATE sec_kholleurs_classes SET duration_preparation=:duration_preparation, duration_kholle=:duration_kholle, id_subjects=:id_subjects WHERE id_kholleurs=:id_kholleurs");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
+            query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
+            query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
+            query.exec();
 
-                if(query.numRowsAffected() <= 0) {
-                    query.prepare("INSERT INTO sec_kholleurs_classes(id_classes, id_kholleurs, duration_preparation, duration_kholle, id_subjects) VALUES(:id_classes, :id_kholleurs, :duration_preparation, :duration_kholle, :id_subjects)");
-                    query.bindValue(":id_classes", m_list_classes->at(i)->getId());
-                    query.bindValue(":id_kholleurs", khll->getId());
-                    query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
-                    query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
-                    query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
-                    query.exec();
-                }
+            for(int i=0; i<m_list_classes->count(); i++) {
+                Class* cl = m_list_classes->at(i);
+                m_paraKC[khll->getId()][cl->getId()].duration_preparation = ui->spinBox_preparation->value();
+                m_paraKC[khll->getId()][cl->getId()].duration_kholle = ui->spinBox_kholle->value();
+                m_paraKC[khll->getId()][cl->getId()].id_subjects = (subj) ? subj->getId() : 0;
             }
 
             QMessageBox::information(this, "Terminé", "Les paramètres de ce kholleurs ont été étendus à toutes les classes...");
         }
     }
     ui->pushButton_all_out->setEnabled(true);
+}
+
+void MainWindow::loadParametersKholleursClasses() {
+    m_paraKC.clear();
+
+    QSqlDatabase db = QSqlDatabase::database();
+    QSqlQuery query(db);
+    query.exec("SELECT id_classes, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholleurs_classes");
+
+    while(query.next()) {
+        int id_classes = query.value(0).toInt();
+        int id_kholleurs = query.value(1).toInt();
+        ParametersKholleurClass par;
+        par.duration_preparation = query.value(2).toInt();
+        par.duration_kholle = query.value(3).toInt();
+        par.id_subjects = query.value(4).toInt();
+
+        m_paraKC[id_kholleurs][id_classes] = par;
+    }
+
+    db.transaction();
+    for(int i=0; i<m_list_kholleurs->count(); i++) {
+        for(int j=0; j<m_list_classes->count(); j++) {
+            Kholleur* khll = m_list_kholleurs->at(i);
+            Class* cl = m_list_classes->at(j);
+            if(! (m_paraKC.contains(khll->getId()) && m_paraKC[khll->getId()].contains(cl->getId()))) {
+                query.prepare("INSERT INTO sec_kholleurs_classes(id_classes, id_kholleurs, duration_preparation, duration_kholle, id_subjects) VALUES(:id_classes, :id_kholleurs, :duration_preparation, :duration_kholle, :id_subjects)");
+                query.bindValue(":id_classes", cl->getId());
+                query.bindValue(":id_kholleurs", khll->getId());
+                query.bindValue(":duration_preparation", 0);
+                query.bindValue(":duration_kholle", 60);
+                query.bindValue(":id_subjects", 0);
+                query.exec();
+
+                ParametersKholleurClass par;
+                par.duration_preparation = 0;
+                par.duration_kholle = 60;
+                par.id_subjects = 0;
+                m_paraKC[khll->getId()][cl->getId()] = par;
+            }
+        }
+    }
+    db.commit();
 }

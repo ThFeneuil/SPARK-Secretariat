@@ -81,6 +81,15 @@ bool ClassesManager::delete_class() {
                 QMessageBox::Yes | QMessageBox::Cancel);
         if(res == QMessageBox::Yes) {
             QSqlQuery query(*m_db);
+            query.prepare("DELETE FROM sec_exceptions WHERE id_kholles IN (SELECT id FROM sec_kholles WHERE id_classes = :id_classes);");
+            query.bindValue(":id_classes", cl->getId());
+            query.exec();
+            query.prepare("DELETE FROM sec_kholles WHERE id_classes = :id_classes");
+            query.bindValue(":id_classes", cl->getId());
+            query.exec();
+            query.prepare("DELETE FROM sec_kholleurs_classes WHERE id_classes = :id_classes");
+            query.bindValue(":id_classes", cl->getId());
+            query.exec();
             query.prepare("DELETE FROM sec_classes WHERE id=:id");
             query.bindValue(":id", cl->getId());
             query.exec();
