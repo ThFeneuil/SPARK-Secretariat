@@ -8,6 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     m_list_kholleurs = new QList<Kholleur*>();
     m_list_classes = new QList<Class*>();
+    m_list_subjects = new QList<Subject*>();
     m_weekboxes = new QList<WeekBox*>();
     m_weekboxes->append(NULL);
     m_weekboxes->append(NULL);
@@ -20,10 +21,11 @@ MainWindow::MainWindow(QWidget *parent) :
         QMessageBox::critical(NULL, "Echec", "Impossible d'ouvrir la base de données...");
     }
 
-    initListsKholleursClasses();
+    initListsKholleursClassesSubjects();
 
     connect(ui->action_DB_Classes, SIGNAL(triggered()), this, SLOT(openClassesManager()));
     connect(ui->action_DB_Kholleurs, SIGNAL(triggered()), this, SLOT(openKholleursManager()));
+    connect(ui->action_DB_Subjects, SIGNAL(triggered(bool)), this, SLOT(openSubjectsManager()));
     connect(ui->action_Help, SIGNAL(triggered()), this, SLOT(openHelp()));
     connect(ui->action_AboutIt, SIGNAL(triggered()), this, SLOT(openAboutIt()));
     connect(ui->edit_kholleurs, SIGNAL(textChanged(QString)), this, SLOT(selectKholleur(QString)));
@@ -36,6 +38,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->button_publish, SIGNAL(clicked(bool)), this, SLOT(openDiffusionManager()));
     connect(ui->spinBox_preparation, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
     connect(ui->spinBox_kholle, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
+    connect(ui->comboBox_subjects, SIGNAL(currentIndexChanged(int)), this, SLOT(saveDurations()));
+    connect(ui->pushButton_all_out, SIGNAL(clicked(bool)), this, SLOT(saveDurationsAll()));
 
     displayLists();
 
@@ -56,8 +60,13 @@ MainWindow::~MainWindow()
         delete m_list_classes->last();
         m_list_classes->pop_back();
     }
+    while(m_list_subjects->count() > 0) {
+        delete m_list_subjects->last();
+        m_list_subjects->pop_back();
+    }
     delete m_list_classes;
     delete m_list_kholleurs;
+    delete m_list_subjects;
 }
 
 void MainWindow::updateWindow() {
@@ -67,7 +76,7 @@ void MainWindow::updateWindow() {
     int idClass = clSelected ? clSelected->getId() : 0;
 
 
-    initListsKholleursClasses();
+    initListsKholleursClassesSubjects();
     displayLists();
 
     for(int i=0; i<ui->list_kholleurs->count() - 1 && idKholleur; i++) {
@@ -81,7 +90,7 @@ void MainWindow::updateWindow() {
             ui->list_classes->setCurrentRow(i);
     }
 }
-void MainWindow::initListsKholleursClasses() {
+void MainWindow::initListsKholleursClassesSubjects() {
     while(m_list_kholleurs->count() > 0) {
         delete m_list_kholleurs->last();
         m_list_kholleurs->pop_back();
@@ -89,6 +98,10 @@ void MainWindow::initListsKholleursClasses() {
     while(m_list_classes->count() > 0) {
         delete m_list_classes->last();
         m_list_classes->pop_back();
+    }
+    while(m_list_subjects->count() > 0) {
+        delete m_list_subjects->last();
+        m_list_subjects->pop_back();
     }
 
     // Make the request
@@ -112,6 +125,17 @@ void MainWindow::initListsKholleursClasses() {
         cl->setId(query.value(0).toInt());
         cl->setName(query.value(1).toString());
         m_list_classes->append(cl);
+    }
+
+    // Make the request
+    query.exec("SELECT id, name FROM sec_subjects ORDER BY UPPER(name)");
+
+    // Treat the request
+    while (query.next()) {
+        Subject* subj = new Subject();
+        subj->setId(query.value(0).toInt());
+        subj->setName(query.value(1).toString());
+        m_list_subjects->append(subj);
     }
 }
 
@@ -137,6 +161,13 @@ void MainWindow::displayLists() {
     itemAddClass->setFont(QFont("", -1, -1, true));
     itemAddClass->setData(Qt::UserRole, (qulonglong) NULL);
     itemAddClass->setHidden(true);
+
+    ui->comboBox_subjects->clear();
+    ui->comboBox_subjects->addItem("...", (qulonglong) 0);
+    for(int i=0; i<m_list_subjects->count(); i++) {
+        Subject* subj = m_list_subjects->at(i);
+        ui->comboBox_subjects->addItem(subj->getName(), (qulonglong) subj);
+    }
 }
 
 void MainWindow::openClassesManager() {
@@ -161,6 +192,21 @@ void MainWindow::openKholleursManager() {
     if(db.isOpen()) {
         // Open the manager
         KholleursManager manager(&db, this);
+        manager.exec();
+        updateWindow();
+    }
+    else {
+        QMessageBox::critical(this, "Erreur", "La connexion à la base de données a échoué");
+    }
+}
+
+void MainWindow::openSubjectsManager() {
+    //Get connection information
+    QSqlDatabase db = QSqlDatabase::database();
+
+    if(db.isOpen()) {
+        // Open the manager
+        SubjectsManager manager(&db, this);
         manager.exec();
         updateWindow();
     }
@@ -375,7 +421,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent *event) {
                 query.bindValue(":name", ((QLineEdit*) obj)->text());
                 query.exec();
 
-                initListsKholleursClasses();
+                initListsKholleursClassesSubjects();
                 displayLists();
                 ((QLineEdit*) obj)->clear();
                 int idInserted = query.lastInsertId().toInt();
@@ -402,21 +448,38 @@ bool MainWindow::eventFilter(QObject* obj, QEvent *event) {
 
 void MainWindow::displayDurations() {
     QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
-    if(itemKholleur) {
+    QListWidgetItem* itemClass = ui->list_classes->currentItem();
+    if(itemKholleur && itemClass) {
         Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
-        if(khll) {
+        Class* cl = (Class*) itemClass->data(Qt::UserRole).toULongLong();
+        if(khll && cl) {
             ui->spinBox_preparation->setEnabled(true);
             ui->spinBox_kholle->setEnabled(true);
             QSqlQuery query(QSqlDatabase::database());
-            query.prepare("SELECT duration_preparation, duration_kholle FROM sec_kholleurs WHERE id=:id");
-            query.bindValue(":id", khll->getId());
+            query.prepare("SELECT duration_preparation, duration_kholle, id_subjects FROM sec_kholleurs_classes WHERE id_classes=:id_classes AND id_kholleurs=:id_kholleurs");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.bindValue(":id_classes", cl->getId());
             query.exec();
             if(query.next()) {
                 ui->spinBox_preparation->setValue(query.value(0).toInt());
                 ui->spinBox_kholle->setValue(query.value(1).toInt());
+                int id_subjects = query.value(2).toInt();
+                ui->comboBox_subjects->setCurrentIndex(0);
+                for(int i=0; i<m_list_subjects->count(); i++) {
+                    if(m_list_subjects->at(i)->getId() == id_subjects)
+                        ui->comboBox_subjects->setCurrentIndex(i+1);
+                }
             } else {
+                query.prepare("INSERT INTO sec_kholleurs_classes(id_classes, id_kholleurs, duration_preparation, duration_kholle, id_subjects) VALUES(:id_classes, :id_kholleurs, :duration_preparation, :duration_kholle, :id_subjects)");
+                query.bindValue(":id_classes", cl->getId());
+                query.bindValue(":id_kholleurs", khll->getId());
+                query.bindValue(":duration_preparation", 0);
+                query.bindValue(":duration_kholle", 60);
+                query.bindValue(":id_subjects", 0);
+                query.exec();
                 ui->spinBox_preparation->setValue(0);
                 ui->spinBox_kholle->setValue(60);
+                ui->comboBox_subjects->setCurrentIndex(0);
             }
             return;
         }
@@ -427,15 +490,54 @@ void MainWindow::displayDurations() {
 }
 void MainWindow::saveDurations() {
     QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
-    if(itemKholleur) {
+    QListWidgetItem* itemClass = ui->list_classes->currentItem();
+    if(itemKholleur && itemClass) {
         Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
-        if(khll) {
+        Class* cl = (Class*) itemClass->data(Qt::UserRole).toULongLong();
+        if(khll && cl) {
+            Subject* subj = (Subject*) ui->comboBox_subjects->currentData().toULongLong();
             QSqlQuery query(QSqlDatabase::database());
-            query.prepare("UPDATE sec_kholleurs SET duration_preparation=:duration_preparation, duration_kholle=:duration_kholle WHERE id=:id");
-            query.bindValue(":id", khll->getId());
+            query.prepare("UPDATE sec_kholleurs_classes SET duration_preparation=:duration_preparation, duration_kholle=:duration_kholle, id_subjects=:id_subjects WHERE id_kholleurs=:id_kholleurs AND id_classes=:id_classes");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.bindValue(":id_classes", cl->getId());
             query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
             query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
+            query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
             query.exec();
         }
     }
+}
+
+void MainWindow::saveDurationsAll() {
+    ui->pushButton_all_out->setEnabled(false);
+    QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
+    if(itemKholleur) {
+        Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
+        if(khll) {
+            Subject* subj = (Subject*) ui->comboBox_subjects->currentData().toULongLong();
+            QSqlQuery query(QSqlDatabase::database());
+            for(int i=0; i<m_list_classes->count(); i++) {
+                query.prepare("UPDATE sec_kholleurs_classes SET duration_preparation=:duration_preparation, duration_kholle=:duration_kholle, id_subjects=:id_subjects WHERE id_kholleurs=:id_kholleurs AND id_classes=:id_classes");
+                query.bindValue(":id_kholleurs", khll->getId());
+                query.bindValue(":id_classes", m_list_classes->at(i)->getId());
+                query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
+                query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
+                query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
+                query.exec();
+
+                if(query.numRowsAffected() <= 0) {
+                    query.prepare("INSERT INTO sec_kholleurs_classes(id_classes, id_kholleurs, duration_preparation, duration_kholle, id_subjects) VALUES(:id_classes, :id_kholleurs, :duration_preparation, :duration_kholle, :id_subjects)");
+                    query.bindValue(":id_classes", m_list_classes->at(i)->getId());
+                    query.bindValue(":id_kholleurs", khll->getId());
+                    query.bindValue(":duration_preparation", ui->spinBox_preparation->value());
+                    query.bindValue(":duration_kholle", ui->spinBox_kholle->value());
+                    query.bindValue(":id_subjects", (subj) ? subj->getId() : 0);
+                    query.exec();
+                }
+            }
+
+            QMessageBox::information(this, "Terminé", "Les paramètres de ce kholleurs ont été étendus à toutes les classes...");
+        }
+    }
+    ui->pushButton_all_out->setEnabled(true);
 }

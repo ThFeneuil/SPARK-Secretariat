@@ -31,4 +31,4 @@ private:
     QQueue<Class*> queue_displayedClasses;
 };
 
-#endif // KHOLLEURSMANAGER_H
+#endif // CLASSESMANAGER_H

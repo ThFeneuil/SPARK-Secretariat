@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>841</width>
+    <width>950</width>
     <height>650</height>
    </rect>
   </property>
@@ -60,7 +60,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>503</width>
+           <width>612</width>
            <height>565</height>
           </rect>
          </property>
@@ -108,6 +108,16 @@
                 </spacer>
                </item>
                <item>
+                <widget class="QLabel" name="label_5">
+                 <property name="text">
+                  <string>Matière : </string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="comboBox_subjects"/>
+               </item>
+               <item>
                 <widget class="QLabel" name="label_3">
                  <property name="text">
                   <string>Préparation (minutes) : </string>
@@ -126,6 +136,33 @@
                </item>
                <item>
                 <widget class="QSpinBox" name="spinBox_kholle"/>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_4">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_all_out">
+                 <property name="toolTip">
+                  <string>Appliquer à tous les classes</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="secre.qrc">
+                   <normaloff>:/images/all_out.png</normaloff>:/images/all_out.png</iconset>
+                 </property>
+                </widget>
                </item>
                <item>
                 <spacer name="horizontalSpacer_2">
@@ -228,7 +265,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>841</width>
+     <width>950</width>
      <height>21</height>
     </rect>
    </property>
@@ -255,6 +292,7 @@
     </property>
     <addaction name="action_DB_Classes"/>
     <addaction name="action_DB_Kholleurs"/>
+    <addaction name="action_DB_Subjects"/>
    </widget>
    <widget class="QMenu" name="menu_Aide">
     <property name="title">
@@ -296,35 +334,12 @@
     <string>Ctrl+N</string>
    </property>
   </action>
-  <action name="action_File_Delete">
-   <property name="text">
-    <string>&amp;Supprimer</string>
-   </property>
-  </action>
-  <action name="action_File_Configuate">
-   <property name="text">
-    <string>&amp;Configurer</string>
-   </property>
-  </action>
   <action name="action_File_Quit">
    <property name="text">
     <string>&amp;Quitter</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
-   </property>
-  </action>
-  <action name="action_DB_Students">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Elèves</string>
-   </property>
-  </action>
-  <action name="action_DB_Groups">
-   <property name="text">
-    <string>&amp;Groupes</string>
    </property>
   </action>
   <action name="action_DB_Classes">
@@ -335,62 +350,6 @@
   <action name="action_DB_Kholleurs">
    <property name="text">
     <string>Kholleurs</string>
-   </property>
-  </action>
-  <action name="action_Schedule_Timetable">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Emploi du temps</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+T</string>
-   </property>
-  </action>
-  <action name="action_Schedule_Students_Groups">
-   <property name="text">
-    <string>&amp;Liens élèves-groupes</string>
-   </property>
-  </action>
-  <action name="action_Schedule_Kholles">
-   <property name="text">
-    <string>&amp;Horaires de kholles</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+K</string>
-   </property>
-  </action>
-  <action name="action_Schedule_Events">
-   <property name="text">
-    <string>Evènements &amp;spéciaux</string>
-   </property>
-  </action>
-  <action name="action_Kholles_Interface">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Interface</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+I</string>
-   </property>
-  </action>
-  <action name="action_Kholles_Generate">
-   <property name="text">
-    <string>&amp;Générer</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+G</string>
-   </property>
-  </action>
-  <action name="action_Kholles_Historic">
-   <property name="text">
-    <string>&amp;Historique</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+H</string>
    </property>
   </action>
   <action name="action_Help">
@@ -406,32 +365,9 @@
     <string>A p&amp;ropos de</string>
    </property>
   </action>
-  <action name="action_Kholles_LastChanges">
-   <property name="text">
-    <string>&amp;Outils de dépannage</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+D</string>
-   </property>
-  </action>
-  <action name="action_Schedule_Swapping_Groups">
-   <property name="text">
-    <string>Echange de &amp;groupes</string>
-   </property>
-  </action>
   <action name="action_File_Settings">
    <property name="text">
     <string>P&amp;aramètres</string>
-   </property>
-  </action>
-  <action name="action_Kholles_QR_Code">
-   <property name="text">
-    <string>QR Code</string>
-   </property>
-  </action>
-  <action name="action_DB_Links">
-   <property name="text">
-    <string>Liens classes-kholleurs</string>
    </property>
   </action>
   <action name="action_Diffusion_options">
@@ -449,12 +385,14 @@
     <string>Imprimer</string>
    </property>
   </action>
-  <action name="actionTaper_ici_2">
+  <action name="action_DB_Subjects">
    <property name="text">
-    <string>Taper ici</string>
+    <string>Matières</string>
    </property>
   </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="secre.qrc"/>
+ </resources>
  <connections/>
 </ui>

@@ -102,6 +102,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
     QString queryDiffuse_str = "";
 
     QSqlQuery query(QSqlDatabase::database());
+    ODBSqlQuery queryDiffuse(INTO(this, test));
     for(int num=1; num<=2; num++) {
         switch(num) {
         case 1:
@@ -127,7 +128,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             query.exec();
         }
 
-        while (query.next()) {
+        for(int numRow = 1; query.next(); numRow++) {
             QDate date = query.value(1).toDate();
             if(num == 2) {
                 int numDays = QDate(1923, 1, 1).daysTo(date);
@@ -139,16 +140,26 @@ bool DiffusionManager::diffuseServer(Class* cls) {
             int duration_preparation = query.value(5).toInt();
             int duration_kholle = query.value(6).toInt();
 
+            QString strRow = QString::number(numRow);
+
             queryDiffuse_str += (queryDiffuse_str != "") ? ", " : "";
-            queryDiffuse_str += "('"+time.addSecs(duration_preparation*60).toString("hh:mm:ss")+"', '"+time.addSecs((duration_preparation+duration_kholle)*60).toString("hh:mm:ss")+"', '"+time.toString("hh:mm:ss")+"', '";
-            queryDiffuse_str += m_kholleurs[id_kholleurs]->getName()+"', '"+date.toString("yyyy-MM-dd")+"', '"+QString::number(nbStudents)+"', '"+cls->getName()+"')";
+            queryDiffuse_str += "(:time"+strRow+", :time_end"+strRow+", :time_start"+strRow+", ";
+            queryDiffuse_str += ":nameKholleur"+strRow+", :date"+strRow+", :nbStudents"+strRow+", :nameClass"+strRow+")";
+            queryDiffuse.bindValue(":time"+strRow, time.addSecs(duration_preparation*60).toString("hh:mm:ss"));
+            queryDiffuse.bindValue(":time_end"+strRow, time.addSecs((duration_preparation+duration_kholle)*60).toString("hh:mm:ss"));
+            queryDiffuse.bindValue(":time_start"+strRow, time.toString("hh:mm:ss"));
+            queryDiffuse.bindValue(":nameKholleur"+strRow, m_kholleurs[id_kholleurs]->getName());
+            queryDiffuse.bindValue(":date"+strRow, date.toString("yyyy-MM-dd"));
+            queryDiffuse.bindValue(":nbStudents"+strRow, QString::number(nbStudents));
+            queryDiffuse.bindValue(":nameClass"+strRow, cls->getName());
          }
     }
 
     if(queryDiffuse_str != "") {
         queryDiffuse_str = "INSERT INTO spark_timeslots(time, time_end, time_start, kholleur, date, nb_pupils, class) VALUES"+queryDiffuse_str+";";
         qDebug() << queryDiffuse_str;
-        askODB(queryDiffuse_str, this, test);
+        queryDiffuse.prepare(queryDiffuse_str);
+        queryDiffuse.exec();
     }
 
     return true;

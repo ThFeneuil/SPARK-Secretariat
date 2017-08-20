@@ -12,6 +12,7 @@
 #include <QKeyEvent>
 #include "managers/classesmanager.h"
 #include "managers/kholleursmanager.h"
+#include "managers/subjectsmanager.h"
 #include "aboutitdialog.h"
 #include "contactdialog.h"
 #include "weekbox.h"
@@ -34,7 +35,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     int distanceLevenshtein(QString u, QString v, int dmax, int cInsert = 1, int cDelete = 1);
-    void initListsKholleursClasses();
+    void initListsKholleursClassesSubjects();
     void updateWindow();
     void displayDurations();
 
@@ -44,6 +45,7 @@ protected:
 public slots:
     void openClassesManager();
     void openKholleursManager();
+    void openSubjectsManager();
     void openOptions();
     void openDiffusionManager();
     void openPrintDialog();
@@ -57,12 +59,14 @@ public slots:
     void kholleurSelected();
     void addWeek();
     void saveDurations();
+    void saveDurationsAll();
 
 private:
     Ui::MainWindow *ui;
     QStringList args;
     QList<Kholleur*>* m_list_kholleurs;
     QList<Class*>* m_list_classes;
+    QList<Subject*>* m_list_subjects;
     QList<WeekBox*>* m_weekboxes;
     QDate m_firstMonday;
     QSqlDatabase* m_db;

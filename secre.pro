@@ -9,7 +9,8 @@ FORMS += \
     optionsdialog.ui \
     diffusionmanager.ui \
     printdialog.ui \
-    managers/updatekholleurdialog.ui
+    managers/updatekholleurdialog.ui \
+    managers/subjectsmanager.ui
 
 HEADERS += \
     mainwindow.h \
@@ -27,7 +28,9 @@ HEADERS += \
     storedData/timeslot.h \
     printdialog.h \
     managers/updatekholleurdialog.h \
-    utilities.h
+    utilities.h \
+    storedData/subject.h \
+    managers/subjectsmanager.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -46,7 +49,9 @@ SOURCES += \
     storedData/timeslot.cpp \
     printdialog.cpp \
     managers/updatekholleurdialog.cpp \
-    utilities.cpp
+    utilities.cpp \
+    storedData/subject.cpp \
+    managers/subjectsmanager.cpp
 
 RESOURCES += \
     secre.qrc

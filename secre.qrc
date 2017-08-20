@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>images/rollback.png</file>
+        <file>images/all_out.png</file>
     </qresource>
 </RCC>
