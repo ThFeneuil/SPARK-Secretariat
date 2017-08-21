@@ -22,6 +22,7 @@
 #include "printpdf.h"
 #include "printdialog.h"
 #include "preferences.h"
+#include "settingsdialog.h"
 
 namespace Ui {
 class MainWindow;
@@ -65,6 +66,7 @@ public slots:
     void saveDurationsAll();
     void openSEC(bool withPref = false);
     void createSEC();
+    void openSettings();
 
 private:
     Ui::MainWindow *ui;

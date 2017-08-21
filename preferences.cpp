@@ -23,6 +23,13 @@ bool Preferences::read() {
                 m_file = in.readLine();
                 if(!QFile(m_file).exists())
                     m_file = "";
+            } else if(data == "Default server:") {
+                data = in.readLine();
+                m_serverDefault = (data == "YES");
+            } else if(data == "Server script:") {
+                m_serverScript = in.readLine();
+            } else if(data == "Server password:") {
+                m_serverPassword = in.readLine();
             }
         }
     }
@@ -36,6 +43,9 @@ bool Preferences::write() {
         QTextStream out(&write);
         out << "Dir path:\n" << m_dir << "\n\n";
         out << "File path:\n" << m_file << "\n\n";
+        out << "Default server:\n" << (m_serverDefault ? "YES" : "NO") << "\n\n";
+        out << "Server script:\n" << m_serverScript << "\n\n";
+        out << "Server password:\n" << m_serverPassword << "\n\n";
         return true;
     }
     return false;
@@ -54,6 +64,24 @@ bool Preferences::setFile(QString file) {
     return write();
 }
 
+bool Preferences::setServerDefault(bool isDefault) {
+    read();
+    m_serverDefault = isDefault;
+    return write();
+}
+
+bool Preferences::setServerScript(QString script) {
+    read();
+    m_serverScript = script;
+    return write();
+}
+
+bool Preferences::setServerPassword(QString password) {
+    read();
+    m_serverPassword = password;
+    return write();
+}
+
 // Getters
 QString Preferences::dir() {
     read();
@@ -63,4 +91,17 @@ QString Preferences::dir() {
 QString Preferences::file() {
     read();
     return m_file;
+}
+bool Preferences::serverDefault() {
+    read();
+    return m_serverDefault;
+}
+QString Preferences::serverScript() {
+    read();
+    return m_serverScript;
+}
+
+QString Preferences::serverPassword() {
+    read();
+    return m_serverPassword;
 }

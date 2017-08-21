@@ -10,7 +10,8 @@ FORMS += \
     diffusionmanager.ui \
     printdialog.ui \
     managers/updatekholleurdialog.ui \
-    managers/subjectsmanager.ui
+    managers/subjectsmanager.ui \
+    settingsdialog.ui
 
 HEADERS += \
     mainwindow.h \
@@ -32,7 +33,8 @@ HEADERS += \
     storedData/subject.h \
     managers/subjectsmanager.h \
     storedData/parameterskholleurclass.h \
-    preferences.h
+    preferences.h \
+    settingsdialog.h
 
 SOURCES += \
     mainwindow.cpp \
@@ -55,7 +57,8 @@ SOURCES += \
     storedData/subject.cpp \
     managers/subjectsmanager.cpp \
     storedData/parameterskholleurclass.cpp \
-    preferences.cpp
+    preferences.cpp \
+    settingsdialog.cpp
 
 RESOURCES += \
     secre.qrc

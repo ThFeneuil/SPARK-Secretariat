@@ -17,6 +17,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(ui->action_File_Create, SIGNAL(triggered(bool)), this, SLOT(createSEC()));
     connect(ui->action_File_Open, SIGNAL(triggered(bool)), this, SLOT(openSEC()));
+    connect(ui->action_File_Settings, SIGNAL(triggered(bool)), this, SLOT(openSettings()));
     connect(ui->action_File_Quit, SIGNAL(triggered(bool)), this, SLOT(close()));
     connect(ui->action_DB_Classes, SIGNAL(triggered()), this, SLOT(openClassesManager()));
     connect(ui->action_DB_Kholleurs, SIGNAL(triggered()), this, SLOT(openKholleursManager()));
@@ -697,4 +698,10 @@ void MainWindow::createSEC() {
 
     QMessageBox::information(NULL, "Succès", "Votre base de données a été créée.<br />Vous pouvez dès maintenant l'utiliser. :p");
     updateWindow();
+}
+
+void MainWindow::openSettings() {
+    // Open the dialog
+    SettingsDialog dialog(this);
+    dialog.exec();
 }

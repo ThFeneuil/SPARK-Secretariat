@@ -10,6 +10,7 @@
 #include "storedData/class.h"
 #include "storedData/kholleur.h"
 #include "storedData/subject.h"
+#include "preferences.h"
 
 namespace Ui {
 class DiffusionManager;
