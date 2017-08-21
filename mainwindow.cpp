@@ -591,11 +591,13 @@ void MainWindow::loadParametersKholleursClasses() {
 void MainWindow::openSEC(bool withPref) {
     Preferences pref;
     QString filename = "";
-    QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
+    bool ok = false;
     if(withPref) {
         filename = pref.file();
         if(filename != "") {
+            QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
             db.setDatabaseName(filename);
+            ok = db.open();
         } else {
             openSEC(false);
             return;
@@ -605,8 +607,10 @@ void MainWindow::openSEC(bool withPref) {
         if(QFile::exists(filename))
             pref.setFile(filename);
         if(filename != "") {
+            QSqlDatabase db = QSqlDatabase::addDatabase("QSQLITE");
             pref.setDir(QFileInfo(filename).absoluteDir().absolutePath());
             db.setDatabaseName(filename);
+            ok = db.open();
         } else {
             updateWindow();
             return;
@@ -614,7 +618,7 @@ void MainWindow::openSEC(bool withPref) {
     }
 
     QString textFile = (filename.count()>90) ? "..." + filename.right(90) : filename;
-    if(db.open()) {
+    if(ok) {
         ui->label_general_info->setText("Fichier : "+textFile+" >>> <strong>Chargé !</strong>");
     } else {
         QMessageBox::critical(NULL, "Echec", "Impossible d'ouvrir la base de données...");
