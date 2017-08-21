@@ -25,8 +25,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
     connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
     connect(ui->action_Diffusion_Print, SIGNAL(triggered(bool)), this, SLOT(openPrintDialog()));
-    connect(ui->action_Help, SIGNAL(triggered()), this, SLOT(openHelp()));
-    connect(ui->action_AboutIt, SIGNAL(triggered()), this, SLOT(openAboutIt()));
+
+    //Pour le A propos de...
+    QAction *action_AboutIt = new QAction("A propos de...");
+    ui->menubar->addAction(action_AboutIt);
+    connect(action_AboutIt, SIGNAL(triggered()), this, SLOT(openAboutIt()));
 
     connect(ui->edit_kholleurs, SIGNAL(textChanged(QString)), this, SLOT(selectKholleur(QString)));
     connect(ui->edit_classes, SIGNAL(textChanged(QString)), this, SLOT(selectClass(QString)));
@@ -283,11 +286,6 @@ void MainWindow::openPrintDialog() {
 
 void MainWindow::openAboutIt() {
     AboutItDialog dialog(this);
-    dialog.exec();
-}
-
-void MainWindow::openHelp(){
-    ContactDialog dialog(this);
     dialog.exec();
 }
 

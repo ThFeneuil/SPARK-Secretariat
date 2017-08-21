@@ -15,7 +15,6 @@
 #include "managers/subjectsmanager.h"
 #include "storedData/parameterskholleurclass.h"
 #include "aboutitdialog.h"
-#include "contactdialog.h"
 #include "weekbox.h"
 #include "optionsdialog.h"
 #include "diffusionmanager.h"
@@ -53,7 +52,6 @@ public slots:
     void openOptions();
     void openDiffusionManager();
     void openPrintDialog();
-    void openHelp();
     void openAboutIt();
     void selectKholleur(QString name);
     void middleAreaEmpty(bool noKholleur, bool noClass);

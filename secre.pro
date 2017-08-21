@@ -3,7 +3,6 @@ QT += widgets sql concurrent network
 FORMS += \
     mainwindow.ui \
     aboutitdialog.ui \
-    contactdialog.ui \
     managers/kholleursmanager.ui \
     managers/classesmanager.ui \
     optionsdialog.ui \
@@ -16,7 +15,6 @@ FORMS += \
 HEADERS += \
     mainwindow.h \
     aboutitdialog.h \
-    contactdialog.h \
     storedData/kholleur.h \
     storedData/class.h \
     managers/kholleursmanager.h \
@@ -40,7 +38,6 @@ SOURCES += \
     mainwindow.cpp \
     main.cpp \
     aboutitdialog.cpp \
-    contactdialog.cpp \
     storedData/kholleur.cpp \
     storedData/class.cpp \
     managers/kholleursmanager.cpp \
@@ -64,3 +61,9 @@ RESOURCES += \
     secre.qrc
 
 DISTFILES +=
+
+VERSION = 1.0
+DEFINES += "APP_VERSION='$$VERSION'"
+QMAKE_TARGET_PRODUCT = "SPARK Secretariat\0"
+
+win32:RC_ICONS += "images/iconApp.ico"

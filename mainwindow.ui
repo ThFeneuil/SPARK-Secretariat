@@ -301,13 +301,6 @@
     <addaction name="action_DB_Kholleurs"/>
     <addaction name="action_DB_Subjects"/>
    </widget>
-   <widget class="QMenu" name="menu_Aide">
-    <property name="title">
-     <string>&amp;Aide</string>
-    </property>
-    <addaction name="action_Help"/>
-    <addaction name="action_AboutIt"/>
-   </widget>
    <widget class="QMenu" name="menuDiffusion">
     <property name="title">
      <string>Diffusion</string>
@@ -319,7 +312,6 @@
    <addaction name="menuFichier"/>
    <addaction name="menuBDD"/>
    <addaction name="menuDiffusion"/>
-   <addaction name="menu_Aide"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="action_File_Open">
