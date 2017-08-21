@@ -52,6 +52,9 @@ DiffusionManager::DiffusionManager(QWidget *parent) :
 
     ui->list_classes->selectAll();
     infoLabel();
+    update_list_mondays();
+    connect(ui->edit_monday, SIGNAL(dateChanged(QDate)), this, SLOT(update_list_mondays()));
+    connect(ui->list_mondays, SIGNAL(itemSelectionChanged()), this, SLOT(update_edit_monday()));
 }
 
 DiffusionManager::~DiffusionManager()
@@ -67,6 +70,36 @@ DiffusionManager::~DiffusionManager()
     while (iClasses.hasNext()) {
         iClasses.next();
         delete iClasses.value();
+    }
+}
+
+void DiffusionManager::update_list_mondays() {
+    QDate currentMonday = ui->edit_monday->date();
+
+    if(currentMonday.dayOfWeek() != 1) {
+        QMessageBox::information(this, "Correction de la date", "La date renseignée n'est pas un Lundi. Le lundi sélectionné sera donc le lundi de la même semaine que le jour rentré.");
+        currentMonday = currentMonday.addDays(1-currentMonday.dayOfWeek());
+    }
+
+    ui->list_mondays->clear();
+    for(int i=-10; i<13; i++) {
+        QDate monday = currentMonday.addDays(7*i);
+        QListWidgetItem* item = new QListWidgetItem(monday.toString("yyyy-MM-dd"), ui->list_mondays);
+        item->setData(Qt::UserRole, monday);
+    }
+    ui->list_mondays->setCurrentRow(10);
+}
+
+void DiffusionManager::update_edit_monday() {
+    int row = ui->list_mondays->currentRow();
+    QListWidgetItem* item = ui->list_mondays->item(row);
+    if(item) {
+        QDate currentMonday = item->data(Qt::UserRole).toDate();
+        disconnect(ui->edit_monday, SIGNAL(dateChanged(QDate)), this, SLOT(update_list_mondays()));
+        ui->edit_monday->setDate(currentMonday);
+        connect(ui->edit_monday, SIGNAL(dateChanged(QDate)), this, SLOT(update_list_mondays()));
+        if(row < 3 || row > 19)
+            update_list_mondays();
     }
 }
 
@@ -92,17 +125,44 @@ void DiffusionManager::infoLabel() {
 void DiffusionManager::diffuse() {
     QList<QListWidgetItem*> selection = ui->list_classes->selectedItems();
 
+    ui->label_diffusionHistory->setText("<strong> Initialisation de la diffusion... </strong>");
+
     QList<Class*> listByPaper;
+    QList<Class*> listByServer;
+
     for(int i=0; i<selection.length(); i++) {
         Class* cls = (Class*) selection[i]->data(Qt::UserRole).toULongLong();
         if(cls->getOptServer())
-            diffuseServer(cls);
+            listByServer.append(cls);
         if(cls->getOptPaper())
             listByPaper.append(cls);
     }
 
-    if(listByPaper.length() > 0)
+    // Initialisation
+    m_byServer_nbTotal = listByPaper.length();
+    m_byServer_nbReceived = 0;
+    m_byPaper_built = false;
+    m_nbErrors = 0;
+
+    if(m_byServer_nbTotal > 0) {
+        writeDiffusionHistory("Démarrage de l'envoi sur le serveur.");
+        writeDiffusionHistory("Il y a "+QString::number(m_byServer_nbTotal) + " " + (m_byServer_nbTotal <= 1 ? "classe" : "classes") + " à envoyer.");
+        for(int i=0; i<listByServer.length(); i++)
+            diffuseServer(listByServer[i]);
+    } else {
+        writeDiffusionHistory("Aucune classe à envoyer sur le serveur...");
+    }
+
+    if(listByPaper.length() > 0) {
+        writeDiffusionHistory("Construction des fiches de liaison.");
         PrintPDF::printTimeSlots(ui->edit_monday->date(), listByPaper, QSqlDatabase::database());
+        writeDiffusionHistory("Fiches de liaison terminés !");
+    } else {
+        writeDiffusionHistory("Aucune fiche de liaison à construire...");
+    }
+    m_byPaper_built = true;
+
+    finishedDiffusion();
 }
 
 bool DiffusionManager::diffuseServer(Class* cls) {
@@ -114,8 +174,8 @@ bool DiffusionManager::diffuseServer(Class* cls) {
     ODBSqlQuery* queryDiffuse = NULL;
     Preferences pref;
     if(pref.serverDefault())
-            queryDiffuse = new ODBSqlQuery(DEFAULT INTO(this, test));
-    else    queryDiffuse = new ODBSqlQuery(FROM(pref.serverScript(), pref.serverPassword()) INTO(this, test));
+            queryDiffuse = new ODBSqlQuery(DEFAULT INTO(this, requestReturn));
+    else    queryDiffuse = new ODBSqlQuery(FROM(pref.serverScript(), pref.serverPassword()) INTO(this, requestReturn));
     for(int num=1; num<=2; num++) {
         switch(num) {
         case 1:
@@ -175,12 +235,37 @@ bool DiffusionManager::diffuseServer(Class* cls) {
         queryDiffuse_str = "INSERT INTO spark_timeslots(time, time_end, time_start, kholleur, date, nb_pupils, class, subject) VALUES"+queryDiffuse_str+";";
         queryDiffuse->prepare(queryDiffuse_str);
         queryDiffuse->exec();
+    } else {
+        int num = ++m_byServer_nbReceived;
+        writeDiffusionHistory("Classe (par serveur) " + QString::number(num) + "/" + QString::number(m_byServer_nbTotal) + " : Rien à envoyer");
+        finishedDiffusion();
     }
 
     return true;
 }
 
-void DiffusionManager::test(ODBRequest *req) {
-    QMessageBox::information(this, "Error", req->lastError());
+void DiffusionManager::requestReturn(ODBRequest *req) {
+    int num = ++m_byServer_nbReceived;
+    if(req->lastError() == "") {
+        writeDiffusionHistory("Classe (par serveur) " + QString::number(num) + "/" + QString::number(m_byServer_nbTotal) + " : Envoyé");
+    } else {
+        writeDiffusionHistory("<strong style='color:red'>" + req->lastError() + "</strong>");
+        writeDiffusionHistory("SERVER ERROR : Classe " + QString::number(num) + "/" + QString::number(m_byServer_nbTotal));
+        m_nbErrors++;
+    }
+    finishedDiffusion();
 }
 
+void DiffusionManager::writeDiffusionHistory(QString text) {
+    ui->label_diffusionHistory->setText(text + "<br />" + ui->label_diffusionHistory->text());
+}
+
+void DiffusionManager::finishedDiffusion() {
+    if(m_byPaper_built && m_byServer_nbReceived >= m_byServer_nbTotal) {
+        writeDiffusionHistory("<strong>DIFFUSION TERMINÉE !</strong>");
+        if(m_nbErrors <= 0)
+            QMessageBox::information(this, "Diffusion terminé", "La diffusion s'est terminée sans problème.");
+        else
+            QMessageBox::critical(this, "Diffusion terminé", "La diffusion s'est terminée avec " + QString::number(m_nbErrors) + " " + (m_nbErrors <= 1 ? "erreur" : "erreurs") + " !");
+    }
+}

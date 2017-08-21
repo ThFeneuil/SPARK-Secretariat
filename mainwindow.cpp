@@ -664,24 +664,24 @@ void MainWindow::createSEC() {
                      "`email`	TEXT NOT NULL DEFAULT '' "
                  ");");
     qCreate.exec("CREATE TABLE `sec_exceptions` ( "
-                     "`id`	INTEGER PRIMARY KEY AUTOINCREMENT, "
-                     "`id_kholles`	INTEGER, "
-                     "`monday`	TEXT "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                     "`id_kholles`	INTEGER NOT NULL, "
+                     "`monday`	TEXT NOT NULL "
                  ");");
     qCreate.exec("CREATE TABLE `sec_kholles` ( "
-                     "`id`	INTEGER PRIMARY KEY AUTOINCREMENT, "
-                     "`id_kholleurs`	INTEGER DEFAULT 0, "
-                     "`id_classes`	INTEGER DEFAULT 0, "
-                     "`date`	TEXT DEFAULT '', "
-                     "`time`	TEXT DEFAULT '', "
-                     "`nb_students`	INTEGER DEFAULT 0, "
-                     "`duration_preparation`	INTEGER DEFAULT 0, "
-                     "`duration_kholle`	INTEGER DEFAULT 0, "
-                     "`id_subjects`	INTEGER DEFAULT 0 "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                     "`id_kholleurs`	INTEGER NOT NULL DEFAULT 0, "
+                     "`id_classes`	INTEGER NOT NULL DEFAULT 0, "
+                     "`date`	TEXT NOT NULL DEFAULT '', "
+                     "`time`	TEXT NOT NULL DEFAULT '', "
+                     "`nb_students`	INTEGER NOT NULL DEFAULT 0, "
+                     "`duration_preparation`	INTEGER NOT NULL DEFAULT 0, "
+                     "`duration_kholle`	INTEGER NOT NULL DEFAULT 0, "
+                     "`id_subjects`	INTEGER NOT NULL DEFAULT 0 "
                   ");");
     qCreate.exec("CREATE TABLE `sec_kholleurs` ( "
-                     "`id`	INTEGER PRIMARY KEY AUTOINCREMENT, "
-                     "`name`	TEXT DEFAULT '' "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
+                     "`name`	TEXT NOT NULL DEFAULT '' "
                 ");");
     qCreate.exec("CREATE TABLE `sec_kholleurs_classes` ( "
                      "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
@@ -693,7 +693,7 @@ void MainWindow::createSEC() {
                  ");");
     qCreate.exec("CREATE TABLE `sec_subjects` ( "
                      "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
-                     "`name`	TEXT DEFAULT '' "
+                     "`name`	TEXT NOT NULL DEFAULT '' "
                  ");");
 
     QMessageBox::information(NULL, "Succès", "Votre base de données a été créée.<br />Vous pouvez dès maintenant l'utiliser. :p");

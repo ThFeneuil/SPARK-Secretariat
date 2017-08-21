@@ -35,7 +35,6 @@ bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSql
     }
 
     painter.end();
-    QMessageBox::information(NULL, "Exportation terminée", "Le PDF a été généré.");
     return true;
 }
 
@@ -56,6 +55,16 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
         khll->setId(query.value(0).toInt());
         khll->setName(query.value(1).toString());
         kholleurs.insert(khll->getId(), khll);
+    }
+
+    // Build the map associating an ID with its subjects
+    QMap<int, Subject*> subjects;
+    query.exec("SELECT id, name FROM sec_subjects");
+    while (query.next()) {
+        Subject* subj = new Subject();
+        subj->setId(query.value(0).toInt());
+        subj->setName(query.value(1).toString());
+        subjects.insert(subj->getId(), subj);
     }
 
     QMap<QString, QMap<QString, TimeSlot*>> timeslots;
@@ -133,9 +142,9 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
 
     // Table
     QList<int> posLinesV;
-    posLinesV << 0 << 38 << 60 << 75 << 90 << 100;
+    posLinesV << 0 << 25 << 43 << 65 << 80 << 92 << 100;
     QList<QString> titleColumns;
-    titleColumns << "Kholleurs" << "Jour" << "Horaires*" << "Durée**" << "Elèves";
+    titleColumns << "Kholleurs" << "Matières" << "Jour" << "Horaires*" << "Durée**" << "Elèves";
     int row_height = (height - heightIntro - heightFootnotes) / (nbRows+1);
     int maxHeightRow = width*2/30;
     if(row_height > maxHeightRow)
@@ -163,6 +172,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
             min_psFont = ps;
     }
     headersFont.setPointSize(min_psFont);
+    qDebug() << "IMPORTANT : " << min_psFont;
 
     /// DRAWING...
     // Title
@@ -205,11 +215,12 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
                 painter->setPen(QPen(QColor(Qt::black)));
 
             painter->drawText(posLinesV[0]*width/100, heightText, " "+kholleurs[ts->getId_kholleurs()]->getName());
-            painter->drawText(posLinesV[1]*width/100, heightText, " "+nameDay(ts->getDate().dayOfWeek()-1)+ts->getDate().toString(" dd/MM"));
-            painter->drawText(posLinesV[2]*width/100, heightText, " "+ts->getTime().toString("hh:mm"));
+            painter->drawText(posLinesV[1]*width/100, heightText, " "+(ts->getId_subjects() ? subjects[ts->getId_subjects()]->getName() : "..."));
+            painter->drawText(posLinesV[2]*width/100, heightText, " "+nameDay(ts->getDate().dayOfWeek()-1)+ts->getDate().toString(" dd/MM"));
+            painter->drawText(posLinesV[3]*width/100, heightText, " "+ts->getTime().toString("hh:mm"));
             QString prep = (ts->getDuration_preparation()) ? " (" + QString::number(ts->getDuration_preparation()) + ")": "";
-            painter->drawText(((posLinesV[3]+posLinesV[4])*width/100-font.width(QString::number(ts->getDuration_kholle()) + prep))/2, heightText, QString::number(ts->getDuration_kholle()) + prep);
-            painter->drawText(((posLinesV[4]+posLinesV[5])*width/100-font.width(QString::number(ts->getNb_students())))/2, heightText, QString::number(ts->getNb_students()));
+            painter->drawText(((posLinesV[4]+posLinesV[5])*width/100-font.width(QString::number(ts->getDuration_kholle()) + prep))/2, heightText, QString::number(ts->getDuration_kholle()) + prep);
+            painter->drawText(((posLinesV[5]+posLinesV[6])*width/100-font.width(QString::number(ts->getNb_students())))/2, heightText, QString::number(ts->getNb_students()));
 
             num++;
         }
