@@ -88,10 +88,18 @@ void DiffusionManager::update_list_mondays() {
     }
 
     ui->list_mondays->clear();
+    QSqlQuery query(*m_db);
     for(int i=-10; i<13; i++) {
         QDate monday = currentMonday.addDays(7*i);
         QListWidgetItem* item = new QListWidgetItem(monday.toString("yyyy-MM-dd"), ui->list_mondays);
         item->setData(Qt::UserRole, monday);
+
+        query.prepare("SELECT COUNT(*) FROM sec_backup_kholles WHERE date >= :start AND date <= :end");
+        query.bindValue(":start", monday.toString("yyyy-MM-dd"));
+        query.bindValue(":end", monday.addDays(6).toString("yyyy-MM-dd"));
+        query.exec();
+        if(query.next() &&  query.value(0).toInt() > 0)
+            item->setBackgroundColor(QColor(Qt::green));
     }
     ui->list_mondays->setCurrentRow(10);
 }
@@ -411,6 +419,7 @@ void DiffusionManager::writeDiffusionHistory(QString text) {
 
 void DiffusionManager::finishedDiffusion() {
     if(m_byPaper_built && m_diffuseInBackup && m_byServer_nbReceived >= m_byServer_nbTotal) {
+        update_list_mondays();
         writeDiffusionHistory("<strong>DIFFUSION TERMINÉE !</strong>");
         ui->button_valid->setEnabled(true);
         if(m_nbErrors <= 0)

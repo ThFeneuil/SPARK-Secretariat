@@ -33,6 +33,7 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
 
     m_hour = new QTimeEdit(QTime(17, 0));
     m_hour->setDisplayFormat("HH:mm");
+    m_hour->setToolTip("Heure de préparation");
     m_nbStudents = new QSpinBox;
     m_nbStudents->setMinimum(0);
     connect(m_nbStudents, SIGNAL(valueChanged(int)), this, SLOT(updateSuffixNbStudents(int)));
@@ -101,6 +102,9 @@ void WeekBox::displayHours() {
         query.exec();
 
         while (query.next()) {
+            QListWidgetItem* item = new QListWidgetItem();
+            QFontMetrics font(item->font());
+
             int id = query.value(0).toInt();
             QDate date = query.value(1).toDate();
             QTime time = query.value(2).toTime();
@@ -108,12 +112,19 @@ void WeekBox::displayHours() {
             int duration_preparation = query.value(4).toInt();
             int duration_kholle = query.value(5).toInt();
             int id_subjects = query.value(6).toInt();
-            QString text = " ("+(id_subjects ? m_subjects[id_subjects]->getName() : "...")+", "+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min)" + " : " + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
+            QString str_subject = (id_subjects ? m_subjects[id_subjects]->getName() : "...");
+            str_subject = str_subject.length() < 15 ? str_subject.leftJustified(15, ' ') : str_subject.left(11) + "...";
+            while(font.width(str_subject) < 110)
+                str_subject += " ";
+            QString str_opt = str_subject+" \t"+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min" + "       \t" + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
+            QString str_hour = "";
             if(m_isWeekModel)
-                    text = nameDay(date.dayOfWeek()-1) + " " + time.toString("hh:mm") + text;
-            else    text = nameDay(date.dayOfWeek()-1) + date.toString(" dd/MM/yyyy") + " " + time.toString("hh:mm") + text;
+                    str_hour = nameDay(date.dayOfWeek()-1) + " " + time.toString("hh:mm") + " (préparation)";
+            else    str_hour = nameDay(date.dayOfWeek()-1) + date.toString(" dd/MM/yyyy") + " " + time.toString("hh:mm") + " (préparation)";
 
-            QListWidgetItem* item = new QListWidgetItem(text);
+            QString text = str_hour + "\t       " + str_opt;
+
+            item->setText(text);
             item->setData(Qt::UserRole, id);
             if(!m_isWeekModel)
                 item->setForeground(QBrush(QColor(255,0,0)));
@@ -134,6 +145,9 @@ void WeekBox::displayHours() {
             query.exec();
 
             while (query.next()) {
+                QListWidgetItem* item = new QListWidgetItem();
+                QFontMetrics font(item->font());
+
                 int id = query.value(0).toInt();
                 QDate date = query.value(1).toDate();
                 int numDays = QDate(1923, 1, 1).daysTo(date);
@@ -143,10 +157,17 @@ void WeekBox::displayHours() {
                 int duration_preparation = query.value(4).toInt();
                 int duration_kholle = query.value(5).toInt();
                 int id_subjects = query.value(6).toInt();
-                QString text = " ("+(id_subjects ? m_subjects[id_subjects]->getName() : "...")+", "+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min)" + " : " + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
-                text = nameDay(date.dayOfWeek()-1) + date.toString(" dd/MM/yyyy") + " " + time.toString("hh:mm") + text;
+                QString str_subject = (id_subjects ? m_subjects[id_subjects]->getName() : "...");
+                str_subject = str_subject.length() < 15 ? str_subject.leftJustified(15, ' ') : str_subject.left(11) + "...";
+                while(font.width(str_subject) < 110)
+                    str_subject += " ";
+                QString str_opt = str_subject+" \t"+QString::number(duration_preparation)+" min, "+QString::number(duration_kholle)+" min" + "       \t" + QString::number(nb_students) + ((nb_students >=2) ? " élèves" : " élève");
+                QString str_hour = "";
+                str_hour = nameDay(date.dayOfWeek()-1) + date.toString(" dd/MM/yyyy") + " " + time.toString("hh:mm") + " (préparation)";
 
-                QListWidgetItem* item = new QListWidgetItem(text);
+                QString text = str_hour + "\t       " + str_opt;
+
+                item->setText(text);
                 item->setData(Qt::UserRole, -id);
 
                 hours[date.toString("yyyy-MM-dd ") + time.toString("hh:mm ") + QString::number(id)] = item;
