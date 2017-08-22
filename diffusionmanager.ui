@@ -40,6 +40,9 @@
          <height>16777215</height>
         </size>
        </property>
+       <property name="displayFormat">
+        <string>dd/MM/yyyy</string>
+       </property>
       </widget>
      </item>
      <item>
