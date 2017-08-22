@@ -24,7 +24,7 @@ public:
     explicit DiffusionManager(QSqlDatabase* db, QWidget *parent = 0);
     ~DiffusionManager();
     bool diffuseServer(Class* cls);
-    bool diffuseInBackup(Class* cls);
+    int diffuseInBackup(Class* cls);
     void writeDiffusionHistory(QString text);
     void finishedDiffusion();
 

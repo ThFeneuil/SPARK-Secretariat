@@ -181,7 +181,7 @@ void DiffusionManager::diffuse() {
         } else if(msg.clickedButton() == add_btn) {
             m_replaceTimeslots = false;
         } else {
-            ui->label_diffusionHistory->setText("<strong> DIFFUSION ANNULÉE ! </strong>");
+            writeDiffusionHistory("<strong> DIFFUSION ANNULÉE ! </strong>");
             ui->button_valid->setEnabled(true);
             return;
         }
@@ -208,8 +208,10 @@ void DiffusionManager::diffuse() {
     m_byPaper_built = true;
 
     writeDiffusionHistory("Sauvegarde des horaires de kholles.");
+    int nbTimeSlots = 0;
     for(int i=0; i<selection.length(); i++)
-        diffuseInBackup((Class*) selection[i]->data(Qt::UserRole).toULongLong());
+        nbTimeSlots += diffuseInBackup((Class*) selection[i]->data(Qt::UserRole).toULongLong());
+    writeDiffusionHistory("Nombre d'horaires de kholles sauvegardés: " + QString::number(nbTimeSlots));
     writeDiffusionHistory("Sauvegarde terminée.");
     m_diffuseInBackup = true;
 
@@ -302,7 +304,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
     return true;
 }
 
-bool DiffusionManager::diffuseInBackup(Class* cls) {
+int DiffusionManager::diffuseInBackup(Class* cls) {
     QDate monday = ui->edit_monday->date();
 
     QString queryBackup_str = "";
@@ -310,6 +312,7 @@ bool DiffusionManager::diffuseInBackup(Class* cls) {
     QSqlQuery query(*m_db);
     QSqlQuery queryBackup(*m_db);
     QMap<QString, QVariant> bindValues;
+    int nbTimeSlots = 0;
     for(int num=1; num<=2; num++) {
         switch(num) {
         case 1:
@@ -362,17 +365,20 @@ bool DiffusionManager::diffuseInBackup(Class* cls) {
             bindValues.insert(":duration_preparation"+strRow, duration_preparation);
             bindValues.insert(":duration_kholle"+strRow, duration_kholle);
             bindValues.insert(":id_subjects"+strRow, id_subjects);
+
+            nbTimeSlots++;
          }
     }
 
     if(queryBackup_str != "") {
-        queryBackup_str = "INSERT INTO sec_backup_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle, id_subjects) VALUES"+queryBackup_str+";";
-        /*if(m_replaceTimeslots) {
-            queryBackup_str = "DELETE FROM sec_backup_kholles WHERE id_classes = :id_classes AND (date >= :start AND date <= :end); "+queryBackup_str;
-            bindValues.insert(":id_classes", cls->getId());
-            bindValues.insert(":start", monday.toString("yyyy-MM-dd"));
-            bindValues.insert(":end", monday.addDays(6).toString("yyyy-MM-dd"));
-        }*/
+        queryBackup_str = "INSERT INTO sec_backup_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle, id_subjects) VALUES"+queryBackup_str;
+        if(m_replaceTimeslots) {
+            queryBackup.prepare("DELETE FROM sec_backup_kholles WHERE id_classes = :id_classes AND (date >= :start AND date <= :end);");
+            queryBackup.bindValue(":id_classes", cls->getId());
+            queryBackup.bindValue(":start", monday.toString("yyyy-MM-dd"));
+            queryBackup.bindValue(":end", monday.addDays(6).toString("yyyy-MM-dd"));
+            queryBackup.exec();
+        }
         queryBackup.prepare(queryBackup_str);
         QMapIterator<QString, QVariant> iBindValues(bindValues);
         while(iBindValues.hasNext()) {
@@ -380,17 +386,9 @@ bool DiffusionManager::diffuseInBackup(Class* cls) {
             queryBackup.bindValue(iBindValues.key(), iBindValues.value());
         }
         queryBackup.exec();
-        qDebug() << queryBackup.lastQuery();
-        QMapIterator<QString, QVariant> iBoundValues(queryBackup.boundValues());
-        while(iBoundValues.hasNext()) {
-            iBoundValues.next();
-            qDebug() << iBoundValues.key() << " >>> " << iBoundValues.value();
-        }
-        qDebug() << queryBackup.boundValues().count();
-        qDebug() << queryBackup.lastError().text();
     }
 
-    return true;
+    return nbTimeSlots;
 }
 
 void DiffusionManager::requestReturn(ODBRequest *req) {
