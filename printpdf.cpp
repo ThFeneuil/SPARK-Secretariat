@@ -5,14 +5,17 @@ PrintPDF::PrintPDF()
 
 }
 
-bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSqlDatabase db) {
+bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSqlDatabase db, DiffusionManager *manager) {
     if(listClasses.length() <= 0)
         return false;
 
     QString filename = QFileDialog::getSaveFileName(NULL, "Enregistrer sous...",
                                                     "Kholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
-    if(filename == "")
+    if(filename == "") {
+        if(manager)
+            manager->writeDiffusionHistory("<strong>Création du PDF annulée...</strong>");
         return false;
+    }
 
     //Create the PDF Writer
     QPdfWriter writer(filename);
@@ -24,14 +27,21 @@ bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSql
     QPainter painter;
     if(!painter.begin(&writer)) {
         QMessageBox::critical(NULL, "Erreur", "Erreur lors de l'écriture du fichier. Le fichier est peut-être ouvert ?");
+        if(manager)
+            manager->writeDiffusionHistory("PDF ERROR : <br /><strong style='color:red'>Erreur lors de l'écriture du fichier.<br />Le fichier est peut-être ouvert ?</strong>");
         return false;
     }
 
     for(int i=0; i<listClasses.length(); i++) {
         if(i != 0)
             writer.newPage();
-        if(! drawPage(&writer, &painter, monday_date, listClasses[i], db))
+        if(! drawPage(&writer, &painter, monday_date, listClasses[i], db)) {
+            if(manager)
+                manager->writeDiffusionHistory("PDF ERROR : <br /><strong style='color:red'>Echec pour la page "+QString::number(i+1)+"/"+QString::number(listClasses.length())+"</strong>");
             return false;
+        }
+        if(manager)
+            manager->writeDiffusionHistory("PDF : "+QString::number(i+1)+"/"+QString::number(listClasses.length())+" générée.");
     }
 
     painter.end();
@@ -137,23 +147,26 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
     QString str_week = "Semaine du Lundi " + monday_date.toString("dd/MM/yyyy");
     int heightTitle = width*2/30;
     int heightInfo = width/30;
-    int heightIntro = heightTitle + heightInfo;
+    int heightSpace = width/60;
+    int heightIntro = heightTitle + heightInfo+heightSpace;
 
     // Footnotes
     QString str_footnote1 = "* Heure de préparation";
     QString str_footnote2 = "** Durée de passage en minutes. Entre parenthèse : durée de la préparation";
-    int heightFootnotes = width*2/30;
+    int heightFootnotes = width*2/30+heightSpace;
 
     // Table
     QList<int> posLinesV;
-    posLinesV << 0 << 25 << 50 << 70 << 82 << 92 << 100;
+    posLinesV << 0 << 24 << 47 << 65 << 79 << 91 << 100;
     QList<QString> titleColumns;
     titleColumns << "Kholleurs" << "Matières" << "Jour" << "Horaires*" << "Durée**" << "Elèves";
     int row_height = (height - heightIntro - heightFootnotes) / (nbRows+1);
-    int maxHeightRow = width*2/30;
+    int maxHeightRow = width*1/20;
     if(row_height > maxHeightRow)
         row_height = maxHeightRow;
     int yEndTable = row_height*(nbRows+1) + heightIntro;
+    int thickLine = 25;
+    int narrowLine = 10;
 
     /// CALCUL POINT SIZE FONT
     // Point Size Font Title
@@ -167,8 +180,10 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
     int ps_week = adaptFont(&infoFont, str_week, width*3/8, heightInfo);
     infoFont.setPointSize((ps_class>ps_week) ? ps_week : ps_class);
 
-    // Point Size Font Headers
+    // Point Size Font Text
     QFont headersFont = painter->font();
+    headersFont.setPointSize(MAX_POINT_SIZE_TEXT_TIMESLOTS);
+    headersFont.setBold(true);
     int min_psFont = -1;
     for(int i=0; i<titleColumns.length(); i++) {
         int ps = adaptFont(&headersFont, " " + titleColumns[i] + " ", (posLinesV[i+1]-posLinesV[i])*width/100, row_height);
@@ -176,11 +191,9 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
             min_psFont = ps;
     }
     headersFont.setPointSize(min_psFont);
-    qDebug() << "IMPORTANT : " << min_psFont;
 
-    // Point Size Font Text
-    QFont textFont = painter->font();
-    textFont.setPointSize(MAX_POINT_SIZE_TEXT_TIMESLOTS);
+    QFont textFont = headersFont;
+    textFont.setBold(false);
 
     /// DRAWING...
     // Title
@@ -194,16 +207,20 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
 
     // Structure Table
     for(int i=0; i<posLinesV.length(); i++) {
+        painter->setPen(QPen(QColor(Qt::black), (i==0 || i==posLinesV.length()-1) ? thickLine : narrowLine));
         painter->drawLine(posLinesV[i]*width/100, heightIntro, posLinesV[i]*width/100, yEndTable);
     }
-    for(int i=0; i<2; i++) {
+    painter->setPen(QPen(QColor(Qt::black), thickLine));
+    for(int i=0; i<2; i++)
         painter->drawLine(0, heightIntro+row_height*i, width, heightIntro+row_height*i);
-    }
+
     painter->setFont(headersFont);
     QFontMetrics fontH = painter->fontMetrics();
-    for(int i=0; i<titleColumns.length(); i++) {
-        painter->drawText(posLinesV[i]*width/100, heightIntro + (row_height-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, " " + titleColumns[i] + " ");
-    }
+    int heightHeader = heightIntro + (row_height-fontH.height())/2 + fontH.ascent() + fontH.leading()/2;
+    for(int i=0; i<titleColumns.length(); i++)
+        drawCenterText(painter, posLinesV[i]*width/100, posLinesV[i+1]*width/100, heightHeader, titleColumns[i]);
+
+    painter->setFont(textFont);
 
     // Display data
     QList<QList<QList<TimeSlot*>>> data;
@@ -218,6 +235,8 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
             doublelist.append(list[j].values());
         data.append(doublelist);
     }
+
+    font = painter->fontMetrics();
 
     int num = 0;
     for(int i=0; i<data.length(); i++) {
@@ -235,34 +254,53 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
                 nameKholleur = kholleurs[ts->getId_kholleurs()]->getName();
                 nameSubject = (ts->getId_subjects() ? subjects[ts->getId_subjects()]->getName() : "...");
                 painter->drawText(posLinesV[2]*width/100, heightText, " "+nameDay(ts->getDate().dayOfWeek()-1)+ts->getDate().toString(" dd/MM"));
-                painter->drawText(posLinesV[3]*width/100, heightText, " "+ts->getTime().toString("hh:mm"));
+                drawCenterText(painter, posLinesV[3]*width/100, posLinesV[4]*width/100, heightText, ts->getTime().toString("hh:mm"));
                 QString prep = (ts->getDuration_preparation()) ? " (" + QString::number(ts->getDuration_preparation()) + ")": "";
-                painter->drawText(((posLinesV[4]+posLinesV[5])*width/100-font.width(QString::number(ts->getDuration_kholle()) + prep))/2, heightText, QString::number(ts->getDuration_kholle()) + prep);
-                painter->drawText(((posLinesV[5]+posLinesV[6])*width/100-font.width(QString::number(ts->getNb_students())))/2, heightText, QString::number(ts->getNb_students()));
+                drawCenterText(painter, posLinesV[4]*width/100, posLinesV[5]*width/100, heightText, QString::number(ts->getDuration_kholle()) + prep);
+                drawCenterText(painter, posLinesV[5]*width/100, posLinesV[6]*width/100, heightText, QString::number(ts->getNb_students()));
 
-                painter->setPen(QPen(QColor(Qt::black)));
+                painter->setPen(QPen(QColor(Qt::black), narrowLine));
                 num++;
                 rowKholleurHeight += row_height;
                 rowSubjectHeight += row_height;
                 painter->drawLine(posLinesV[2]*width/100, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
             }
             painter->drawText(posLinesV[1]*width/100, heightIntro + row_height + row_height*num-rowSubjectHeight + (rowSubjectHeight-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, " "+nameSubject);
-            painter->drawLine(posLinesV[1]*width/100, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
+            painter->drawLine(posLinesV[1]*width/100, heightIntro+row_height*(num+1), posLinesV[2]*width/100, heightIntro+row_height*(num+1));
         }
         painter->drawText(posLinesV[0]*width/100, heightIntro + row_height + row_height*num-rowKholleurHeight + (rowKholleurHeight-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, " "+nameKholleur);
-        painter->drawLine(posLinesV[0]*width/100, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
+        painter->drawLine(posLinesV[0]*width/100, heightIntro+row_height*(num+1), posLinesV[1]*width/100, heightIntro+row_height*(num+1));
+        painter->setPen(QPen(QColor(Qt::black), thickLine));
+        painter->drawLine(0, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
     }
 
-
-    painter->drawText(0, yEndTable + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote1);
-    painter->drawText(0, yEndTable + heightFootnotes/2 + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote2);
-
+    painter->drawText(0, yEndTable +heightSpace+ (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote1);
+    painter->drawText(0, yEndTable +heightSpace+ (heightFootnotes-heightSpace)/2 + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote2);
 
     // WILL FREE MEMORIES
+    QMapIterator<int, Kholleur*> iKholleurs(kholleurs);
+    while(iKholleurs.hasNext()) {
+        iKholleurs.next();
+        delete iKholleurs.value();
+    }
 
+    QMapIterator<int, Subject*> iSubjects(subjects);
+    while(iSubjects.hasNext()) {
+        iSubjects.next();
+        delete iSubjects.value();
+    }
 
+    for(int i=0; i<data.length(); i++)
+        for(int j=0; j<data[i].length(); j++)
+            for(int k=0; k<data[i][j].length(); k++)
+                delete data[i][j][k];
 
     return true;
+}
+
+void PrintPDF::drawCenterText(QPainter *painter, int left, int right, int height, QString text) {
+    QFontMetrics font = painter->fontMetrics();
+    painter->drawText((left+right-font.width(text))/2, height, text);
 }
 
 int PrintPDF::adaptFont(QFont* font, QString text, int widthText, int maxHeight) {

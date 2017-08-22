@@ -87,6 +87,9 @@ bool ClassesManager::delete_class() {
             query.prepare("DELETE FROM sec_kholles WHERE id_classes = :id_classes");
             query.bindValue(":id_classes", cl->getId());
             query.exec();
+            query.prepare("DELETE FROM sec_backup_kholles WHERE id_classes = :id_classes");
+            query.bindValue(":id_classes", cl->getId());
+            query.exec();
             query.prepare("DELETE FROM sec_kholleurs_classes WHERE id_classes = :id_classes");
             query.bindValue(":id_classes", cl->getId());
             query.exec();

@@ -170,6 +170,8 @@ void DiffusionManager::diffuse() {
 
     if(listAlreadyInBackup.count() > 0) {
         QMessageBox msg;
+        msg.setWindowTitle("Diffusion");
+        msg.setIcon(QMessageBox::Warning);
         msg.setText("Parmi les classes sélectionnées, certaines ont déjà été diffusées... Voulez-vous remplacer la diffusion précédente ou voulez-vous rajouter cette diffusion à la précédente ? <strong>Attention, si vous la rajoutez, certains horaires de kholles pourront être dédoublés !</strong>");
         QAbstractButton *replace_btn = (QAbstractButton*) msg.addButton("Remplacer", QMessageBox::ApplyRole);
         QAbstractButton *add_btn = (QAbstractButton*) msg.addButton("Rajouter (!)", QMessageBox::ApplyRole);
@@ -200,7 +202,7 @@ void DiffusionManager::diffuse() {
 
     if(listByPaper.length() > 0) {
         writeDiffusionHistory("Construction des fiches de liaison.");
-        PrintPDF::printTimeSlots(ui->edit_monday->date(), listByPaper, *m_db);
+        PrintPDF::printTimeSlots(ui->edit_monday->date(), listByPaper, *m_db, this);
         writeDiffusionHistory("Fiches de liaison terminés !");
     } else {
         writeDiffusionHistory("Aucune fiche de liaison à construire.");
@@ -214,7 +216,6 @@ void DiffusionManager::diffuse() {
     writeDiffusionHistory("Nombre d'horaires de kholles sauvegardés: " + QString::number(nbTimeSlots));
     writeDiffusionHistory("Sauvegarde terminée.");
     m_diffuseInBackup = true;
-
 
     finishedDiffusion();
 }
@@ -405,6 +406,7 @@ void DiffusionManager::requestReturn(ODBRequest *req) {
 
 void DiffusionManager::writeDiffusionHistory(QString text) {
     ui->label_diffusionHistory->setText(text + "<br />" + ui->label_diffusionHistory->text());
+    show();
 }
 
 void DiffusionManager::finishedDiffusion() {

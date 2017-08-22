@@ -88,6 +88,9 @@ bool KholleursManager::delete_kholleur() {
             query.prepare("DELETE FROM sec_kholles WHERE id_kholleurs = :id_kholleurs");
             query.bindValue(":id_kholleurs", khll->getId());
             query.exec();
+            query.prepare("DELETE FROM sec_backup_kholles WHERE id_kholleurs = :id_kholleurs");
+            query.bindValue(":id_kholleurs", khll->getId());
+            query.exec();
             query.prepare("DELETE FROM sec_kholleurs_classes WHERE id_kholleurs = :id_kholleurs");
             query.bindValue(":id_kholleurs", khll->getId());
             query.exec();

@@ -83,6 +83,10 @@ bool SubjectsManager::delete_subject() {
             QSqlQuery query(*m_db);
             query.prepare("UPDATE sec_kholles SET id_subjects = 0 WHERE id_subjects=:id_subjects");
             query.bindValue(":id_subjects", subj->getId());
+            query.exec();
+            query.prepare("UPDATE sec_backup_kholles SET id_subjects = 0 WHERE id_subjects=:id_subjects");
+            query.bindValue(":id_subjects", subj->getId());
+            query.exec();
             query.prepare("DELETE FROM sec_subjects WHERE id=:id");
             query.bindValue(":id", subj->getId());
             query.exec();
