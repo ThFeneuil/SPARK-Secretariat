@@ -36,6 +36,7 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
             m_days->addItem(m_monday.addDays(i).toString("dddd dd/MM"), i);
 
     m_hour = new QTimeEdit(QTime(17, 0));
+    m_hour->setDisplayFormat("HH:mm");
     m_nbStudents = new QSpinBox;
     m_nbStudents->setMinimum(0);
     connect(m_nbStudents, SIGNAL(valueChanged(int)), this, SLOT(updateSuffixNbStudents(int)));
