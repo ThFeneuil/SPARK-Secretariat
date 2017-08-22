@@ -21,6 +21,8 @@
 #include "storedData/subject.h"
 #include "utilities.h"
 
+#define MAX_POINT_SIZE_TEXT_TIMESLOTS 17
+
 class PrintPDF
 {
 public:

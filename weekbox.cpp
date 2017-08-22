@@ -29,11 +29,11 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
 
     m_days = new QComboBox;
     if(m_isWeekModel)
-        for(int i=0; i<7; i++)
-            m_days->addItem(m_monday.addDays(i).toString("dddd"), i);
+        for(int i=0; i<6; i++)
+            m_days->addItem(nameDay(i), i);
     else
-        for(int i=0; i<7; i++)
-            m_days->addItem(m_monday.addDays(i).toString("dddd dd/MM"), i);
+        for(int i=0; i<6; i++)
+            m_days->addItem(nameDay(m_monday.addDays(i).dayOfWeek()-1) + m_monday.addDays(i).toString(" dd/MM"), i);
 
     m_hour = new QTimeEdit(QTime(17, 0));
     m_nbStudents = new QSpinBox;
