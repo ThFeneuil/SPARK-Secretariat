@@ -320,7 +320,7 @@ int PrintPDF::adaptFont(QFont* font, QString text, int widthText, int maxHeight)
     return betterPointSize;
 }
 
-bool PrintPDF::printKhollesPapers(QDate monday_date) {
+bool PrintPDF::printKhollesPapers(QDate monday_date, QList<Class*> listClasses, QSqlDatabase db) {
     QString filename = QFileDialog::getSaveFileName(NULL, "Enregistrer sous...",
                                                     "Kholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
     if(filename == "")
@@ -328,9 +328,9 @@ bool PrintPDF::printKhollesPapers(QDate monday_date) {
 
     //Create the PDF Writer
     QPdfWriter writer(filename);
-    writer.setPageSize(QPdfWriter::A3);
+    writer.setPageSize(QPdfWriter::A4);
     writer.setPageOrientation(QPageLayout::Portrait);
-    writer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
+    writer.setPageMargins(QMarginsF(10, 10, 10, 10), QPageLayout::Millimeter);
     writer.setCreator("SPARK Secretariat");
 
     QPainter painter;
@@ -339,8 +339,119 @@ bool PrintPDF::printKhollesPapers(QDate monday_date) {
         return false;
     }
 
-    int width = writer.width();
-    int height = writer.height();
+    /// Style settings
+    // Text Style
+    QFont f = painter.font();
+    f.setFamily("Times New Roman");
+    f.setBold(true);
+    f.setPointSize(12);
+    painter.setFont(f);
+    // Line Style
+    painter.setPen(QPen(Qt::black, 22));
+
+    ///Get data
+    // Build the map associating an ID with its kholleur
+    QMap<int, Kholleur*> kholleurs;
+    QSqlQuery query(db);
+    query.exec("SELECT id, name FROM sec_kholleurs");
+    while (query.next()) {
+        Kholleur* khll = new Kholleur();
+        khll->setId(query.value(0).toInt());
+        khll->setName(query.value(1).toString());
+        kholleurs.insert(khll->getId(), khll);
+    }
+
+    // Build the map associating an ID with its subjects
+    QMap<int, Subject*> subjects;
+    query.exec("SELECT id, name FROM sec_subjects");
+    while (query.next()) {
+        Subject* subj = new Subject();
+        subj->setId(query.value(0).toInt());
+        subj->setName(query.value(1).toString());
+        subjects.insert(subj->getId(), subj);
+    }
+
+    bool first_page = true;
+    for(int i = 0; i < listClasses.length(); i++) {
+        QMap<int, QMap<int, QMap<QDate, int>>> pages;
+
+        ///Load all data for this class
+        query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
+                      "id_classes = :id_classes AND (date >= :start AND date <= :end) "
+                      );
+        query.bindValue(":id_classes", listClasses[i]->getId());
+        query.bindValue(":start", monday_date.toString("yyyy-MM-dd"));
+        query.bindValue(":end", monday_date.addDays(6).toString("yyyy-MM-dd"));
+        query.exec();
+
+        while(query.next()) {
+            QDate date = query.value(1).toDate();
+            int nb_students = query.value(3).toInt();
+            int id_kholleurs = query.value(4).toInt();
+            int id_subjects = query.value(7).toInt();
+
+            if(!pages[id_kholleurs][id_subjects].contains(date))
+                pages[id_kholleurs][id_subjects][date] = 0;
+
+            pages[id_kholleurs][id_subjects][date] += nb_students;
+        }
+
+        query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
+                      "id_classes = :id_classes AND (date <= '1924-01-01') "
+                      "AND id NOT IN "
+                      "(SELECT id_kholles FROM sec_exceptions WHERE monday=:monday) "
+                      "ORDER BY date, time"
+                      );
+        query.bindValue(":id_classes", listClasses[i]->getId());
+        query.bindValue(":monday", monday_date.toString("yyyy-MM-dd"));
+        query.exec();
+
+        while(query.next()) {
+            QDate date = query.value(1).toDate();
+            int numDays = QDate(1923, 1, 1).daysTo(date);
+            date = monday_date.addDays(numDays);
+            int nb_students = query.value(3).toInt();
+            int id_kholleurs = query.value(4).toInt();
+            int id_subjects = query.value(7).toInt();
+
+            if(!pages[id_kholleurs][id_subjects].contains(date))
+                pages[id_kholleurs][id_subjects][date] = 0;
+
+            pages[id_kholleurs][id_subjects][date] += nb_students;
+        }
+
+
+        ///Treat data
+        //For each kholleur
+        QMapIterator<int, QMap<int, QMap<QDate, int>>> ikh(pages);
+        while(ikh.hasNext()) {
+            ikh.next();
+            //For each subject
+            QMapIterator<int, QMap<QDate, int>> isub(ikh.value());
+            while(isub.hasNext()) {
+                isub.next();
+                //For each day
+                QMapIterator<QDate, int> idate(isub.value());
+                while(idate.hasNext()) {
+                    idate.next();
+
+                    if(!first_page)
+                        writer.newPage();
+                    first_page = false;
+
+                    drawKPStructure(&writer, &painter);
+                    drawData(&writer, &painter, idate.key(), kholleurs[ikh.key()], subjects[isub.key()], listClasses[i], idate.value());
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+void PrintPDF::drawKPStructure(QPdfWriter *writer, QPainter *painter) {
+    int width = writer->width();
+    int height = writer->height();
 
     /// Data for the displaying
     // Strings
@@ -361,54 +472,61 @@ bool PrintPDF::printKhollesPapers(QDate monday_date) {
     int heightRow = (height-yTable-heightText) / (nbRows+1);
     int yEndTable = yTable + heightText + (nbRows+1)*heightRow;
 
-    /// Style settings
-    // Text Style
-    QFont f = painter.font();
-    f.setPointSize(16);
-    f.setFamily("Times New Roman");
-    f.setBold(true);
-    painter.setFont(f);
-    // Line Style
-    painter.setPen(QPen(Qt::black, 30));
     // Tools
-    QFontMetrics font = painter.fontMetrics();
+    QFont f = painter->font();
+    f.setBold(true);
+    painter->setFont(f);
+    QFontMetrics font = painter->fontMetrics();
 
     /// Headers of the paper...
-    painter.drawText(0,0," Date :");
-    painter.drawText(width*0.30,0,"Interrogateur :");
-    painter.drawText(width*0.30,heightText*0.8,"Matière :");
-    painter.drawText(width*0.30,heightText*0.8*2,"Classe :");
-    painter.drawText(width*0.80,heightText*0.8,"Salle :");
+    painter->drawText(0,0," Date :");
+    painter->drawText(width*0.30,0,"Interrogateur :");
+    painter->drawText(width*0.30,heightText*0.8,"Matière :");
+    painter->drawText(width*0.30,heightText*0.8*2,"Classe :");
+    painter->drawText(width*0.80,heightText*0.8,"Salle :");
 
 
     /// Table Structure
     // Headers
-    painter.drawLine(0, yTable, width, yTable);
-    painter.drawText((x2eColumn-font.width(headers[0]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[0]);
-    painter.drawText((x2eColumn+x3eColumn-font.width(headers[1]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[1]);
-    painter.drawText((x3eColumn+width-font.width(headers[2]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[2]);
+    painter->drawLine(0, yTable, width, yTable);
+    painter->drawText((x2eColumn-font.width(headers[0]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[0]);
+    painter->drawText((x2eColumn+x3eColumn-font.width(headers[1]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[1]);
+    painter->drawText((x3eColumn+width-font.width(headers[2]))/2, yTable+(heightText-font.height())/2 + font.ascent() + font.leading()/2, headers[2]);
 
     // H. Lines
     for(int i=0; i<=nbRows; i++) {
         int h = yTable + heightText + i*heightRow;
-        painter.drawLine(0, h, width, h);
+        painter->drawLine(0, h, width, h);
         if(i != 0) { // Mark area
-            painter.drawText(0, h-heightText + (heightText-font.height())/2 + font.ascent() + font.leading()/2, " " + str_mark);
-            painter.drawLine(0, h-heightText, x2eColumn, h-heightText);
+            painter->drawText(0, h-heightText + (heightText-font.height())/2 + font.ascent() + font.leading()/2, " " + str_mark);
+            painter->drawLine(0, h-heightText, x2eColumn, h-heightText);
         }
     }
 
     // Observation row
-    painter.drawText((width-font.width(str_obs))/2, yEndTable-heightRow+(heightText-font.height())/2 + font.ascent() + font.leading()/2, str_obs);
-    painter.drawLine(0, yEndTable, width, yEndTable);
+    painter->drawText((width-font.width(str_obs))/2, yEndTable-heightRow+(heightText-font.height())/2 + font.ascent() + font.leading()/2, str_obs);
+    painter->drawLine(0, yEndTable, width, yEndTable);
 
     // V. Lines
-    painter.drawLine(0, yTable, 0, yEndTable);
-    painter.drawLine(width, yTable, width, yEndTable);
-    painter.drawLine(x2eColumn, yTable, x2eColumn, yEndTable-heightRow);
-    painter.drawLine(x3eColumn, yTable, x3eColumn, yEndTable-heightRow);
-
-
-    return true;
+    painter->drawLine(0, yTable, 0, yEndTable);
+    painter->drawLine(width, yTable, width, yEndTable);
+    painter->drawLine(x2eColumn, yTable, x2eColumn, yEndTable-heightRow);
+    painter->drawLine(x3eColumn, yTable, x3eColumn, yEndTable-heightRow);
 }
 
+void PrintPDF::drawData(QPdfWriter *writer, QPainter *painter, QDate date, Kholleur *kh, Subject *s, Class *c, int nb_students) {
+    int width = writer->width();
+    int heightText = width*0.03;
+
+    QFontMetrics font = painter->fontMetrics(); //We need the fontmetrics for bold font, not normal font !!
+    painter->drawText(font.width(" Date : "), heightText*0.8*2, " " + QString::number(nb_students) + (nb_students <= 1 ? " élève" : " élèves"));
+
+    QFont f = painter->font();
+    f.setBold(false);
+    painter->setFont(f);
+
+    painter->drawText(font.width(" Date : "), 0, nameDay(date.dayOfWeek()-1) + " " + date.toString("dd/MM/yyyy"));
+    painter->drawText(width*0.30 + font.width("Interrogateur : "), 0, kh->getName());
+    painter->drawText(width*0.30 + font.width("Matière : "), heightText*0.8, s->getName());
+    painter->drawText(width*0.30 + font.width("Classe : "), heightText*0.8*2, c->getName());
+}

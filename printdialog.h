@@ -13,7 +13,7 @@ class PrintDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit PrintDialog(QWidget *parent = 0);
+    explicit PrintDialog(QSqlDatabase *db, QWidget *parent = 0);
     ~PrintDialog();
 
 public slots:
@@ -21,6 +21,7 @@ public slots:
 
 private:
     Ui::PrintDialog *ui;
+    QSqlDatabase *m_db;
 };
 
 #endif // PRINTDIALOG_H

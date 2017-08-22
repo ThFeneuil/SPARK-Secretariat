@@ -286,7 +286,7 @@ void MainWindow::openPrintDialog() {
 
     if(db.isOpen()) {
         // Open the manager
-        PrintDialog manager(this);
+        PrintDialog manager(&db, this);
         manager.exec();
     }
     else {
