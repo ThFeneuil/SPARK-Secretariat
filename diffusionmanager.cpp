@@ -1,18 +1,19 @@
 #include "diffusionmanager.h"
 #include "ui_diffusionmanager.h"
 
-DiffusionManager::DiffusionManager(QWidget *parent) :
+DiffusionManager::DiffusionManager(QSqlDatabase* db, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::DiffusionManager)
 {
     ui->setupUi(this);
+    m_db = db;
 
     QDate next_monday = QDate::currentDate();
     while(next_monday.dayOfWeek() != 1)
         next_monday = next_monday.addDays(1);
     ui->edit_monday->setDate(next_monday);
 
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(*m_db);
 
     // Build the map associating an ID with its kholleur
     query.exec("SELECT id, name FROM sec_kholleurs");
@@ -123,26 +124,65 @@ void DiffusionManager::infoLabel() {
 }
 
 void DiffusionManager::diffuse() {
+    ui->button_valid->setEnabled(false);
     QList<QListWidgetItem*> selection = ui->list_classes->selectedItems();
+    QDate monday = ui->edit_monday->date();
 
     ui->label_diffusionHistory->setText("<strong> Initialisation de la diffusion... </strong>");
 
     QList<Class*> listByPaper;
     QList<Class*> listByServer;
+    QList<Class*> listAlreadyInBackup;
 
+    QSqlQuery query(*m_db);
     for(int i=0; i<selection.length(); i++) {
         Class* cls = (Class*) selection[i]->data(Qt::UserRole).toULongLong();
         if(cls->getOptServer())
             listByServer.append(cls);
         if(cls->getOptPaper())
             listByPaper.append(cls);
+
+        query.prepare("SELECT COUNT(*) FROM sec_backup_kholles WHERE "
+                      "id_classes = :id_classes AND (date >= :start AND date <= :end) ");
+        query.bindValue(":id_classes", cls->getId());
+        query.bindValue(":start", monday.toString("yyyy-MM-dd"));
+        query.bindValue(":end", monday.addDays(6).toString("yyyy-MM-dd"));
+        query.exec();
+        if(query.next()) {
+            int nb = query.value(0).toInt();
+            if(nb > 0)
+                listAlreadyInBackup.append(cls);
+        }
     }
 
     // Initialisation
     m_byServer_nbTotal = listByPaper.length();
     m_byServer_nbReceived = 0;
     m_byPaper_built = false;
+    m_diffuseInBackup = false;
     m_nbErrors = 0;
+    m_replaceTimeslots = true;
+
+    if(listAlreadyInBackup.count() > 0) {
+        QMessageBox msg;
+        msg.setText("Parmi les classes sélectionnées, certaines ont déjà été diffusées... Voulez-vous remplacer la diffusion précédente ou voulez-vous rajouter cette diffusion à la précédente ? <strong>Attention, si vous la rajoutez, certains horaires de kholles pourront être dédoublés !</strong>");
+        QAbstractButton *replace_btn = (QAbstractButton*) msg.addButton("Remplacer", QMessageBox::ApplyRole);
+        QAbstractButton *add_btn = (QAbstractButton*) msg.addButton("Rajouter (!)", QMessageBox::ApplyRole);
+        msg.addButton("Annuler", QMessageBox::ApplyRole);
+        msg.exec();
+
+        if(msg.clickedButton() == replace_btn) {
+            m_replaceTimeslots = true;
+        } else if(msg.clickedButton() == add_btn) {
+            m_replaceTimeslots = false;
+        } else {
+            ui->label_diffusionHistory->setText("<strong> DIFFUSION ANNULÉE ! </strong>");
+            ui->button_valid->setEnabled(true);
+            return;
+        }
+    }
+
+    ui->label_diffusionHistory->setText("<strong> Démarrage de la diffusion... </strong>");
 
     if(m_byServer_nbTotal > 0) {
         writeDiffusionHistory("Démarrage de l'envoi sur le serveur.");
@@ -155,12 +195,19 @@ void DiffusionManager::diffuse() {
 
     if(listByPaper.length() > 0) {
         writeDiffusionHistory("Construction des fiches de liaison.");
-        PrintPDF::printTimeSlots(ui->edit_monday->date(), listByPaper, QSqlDatabase::database());
+        PrintPDF::printTimeSlots(ui->edit_monday->date(), listByPaper, *m_db);
         writeDiffusionHistory("Fiches de liaison terminés !");
     } else {
-        writeDiffusionHistory("Aucune fiche de liaison à construire...");
+        writeDiffusionHistory("Aucune fiche de liaison à construire.");
     }
     m_byPaper_built = true;
+
+    writeDiffusionHistory("Sauvegarde des horaires de kholles.");
+    for(int i=0; i<selection.length(); i++)
+        diffuseInBackup((Class*) selection[i]->data(Qt::UserRole).toULongLong());
+    writeDiffusionHistory("Sauvegarde terminée.");
+    m_diffuseInBackup = true;
+
 
     finishedDiffusion();
 }
@@ -170,7 +217,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
 
     QString queryDiffuse_str = "";
 
-    QSqlQuery query(QSqlDatabase::database());
+    QSqlQuery query(*m_db);
     ODBSqlQuery* queryDiffuse = NULL;
     Preferences pref;
     if(pref.serverDefault())
@@ -233,12 +280,105 @@ bool DiffusionManager::diffuseServer(Class* cls) {
 
     if(queryDiffuse_str != "") {
         queryDiffuse_str = "INSERT INTO spark_timeslots(time, time_end, time_start, kholleur, date, nb_pupils, class, subject) VALUES"+queryDiffuse_str+";";
+        if(m_replaceTimeslots) {
+            queryDiffuse_str = "DELETE FROM spark_timeslots WHERE class = :nameClass AND (date >= :start AND date <= :end); "+queryDiffuse_str;
+            queryDiffuse->bindValue(":nameClass", cls->getName());
+            queryDiffuse->bindValue(":start", monday.toString("yyyy-MM-dd"));
+            queryDiffuse->bindValue(":end", monday.addDays(6).toString("yyyy-MM-dd"));
+        }
         queryDiffuse->prepare(queryDiffuse_str);
         queryDiffuse->exec();
     } else {
         int num = ++m_byServer_nbReceived;
         writeDiffusionHistory("Classe (par serveur) " + QString::number(num) + "/" + QString::number(m_byServer_nbTotal) + " : Rien à envoyer");
         finishedDiffusion();
+    }
+
+    return true;
+}
+
+bool DiffusionManager::diffuseInBackup(Class* cls) {
+    QDate monday = ui->edit_monday->date();
+
+    QString queryBackup_str = "";
+
+    QSqlQuery query(*m_db);
+    QSqlQuery queryBackup(*m_db);
+    QMap<QString, QVariant> bindValues;
+    for(int num=1; num<=2; num++) {
+        switch(num) {
+        case 1:
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_kholle, id_subjects FROM sec_kholles WHERE "
+                          "id_classes = :id_classes AND (date >= :start AND date <= :end) "
+                          "ORDER BY date, time"
+                          );
+            query.bindValue(":id_classes", cls->getId());
+            query.bindValue(":start", monday.toString("yyyy-MM-dd"));
+            query.bindValue(":end", monday.addDays(6).toString("yyyy-MM-dd"));
+            query.exec();
+            break;
+        case 2:
+        default:
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
+                          "id_classes = :id_classes AND (date <= '1924-01-01') "
+                          "AND id NOT IN "
+                          "(SELECT id_kholles FROM sec_exceptions WHERE monday=:monday) "
+                          "ORDER BY date, time"
+                          );
+            query.bindValue(":id_classes", cls->getId());
+            query.bindValue(":monday", monday.toString("yyyy-MM-dd"));
+            query.exec();
+        }
+
+        for(int numRow = 1; query.next(); numRow++) {
+            QDate date = query.value(1).toDate();
+            if(num == 2) {
+                int numDays = QDate(1923, 1, 1).daysTo(date);
+                date = monday.addDays(numDays);
+            }
+            QTime time = query.value(2).toTime();
+            int nbStudents = query.value(3).toInt();
+            int id_kholleurs = query.value(4).toInt();
+            int duration_preparation = query.value(5).toInt();
+            int duration_kholle = query.value(6).toInt();
+            int id_subjects = query.value(7).toInt();
+
+            QString strRow = QString::number(numRow);
+
+            queryBackup_str += (queryBackup_str != "") ? ", " : "";
+            queryBackup_str += "(:id_kholleurs"+strRow+", :id_classes"+strRow+", :date"+strRow+", :time"+strRow+", :nb_students"+strRow+", ";
+            queryBackup_str += ":duration_preparation"+strRow+", :duration_kholle"+strRow+", :id_subjects"+strRow+")";
+
+            bindValues.insert(":id_kholleurs"+strRow, id_kholleurs);
+            bindValues.insert(":id_classes"+strRow, cls->getId());
+            bindValues.insert(":date"+strRow, date.toString("yyyy-MM-dd"));
+            bindValues.insert(":time"+strRow, time.toString("hh:mm:ss"));
+            bindValues.insert(":nb_students"+strRow, nbStudents);
+            bindValues.insert(":duration_preparation"+strRow, duration_preparation);
+            bindValues.insert(":duration_kholle"+strRow, duration_kholle);
+            bindValues.insert(":id_subjects"+strRow, id_subjects);
+         }
+    }
+
+    if(queryBackup_str != "") {
+        queryBackup_str = "INSERT INTO sec_backup_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle, id_subjects) VALUES"+queryBackup_str+";";
+        /*if(m_replaceTimeslots) {
+            queryBackup_str = "DELETE FROM sec_backup_kholles WHERE id_classes = :id_classes AND (date >= :start AND date <= :end); "+queryBackup_str;
+            bindValues.insert(":id_classes", cls->getId());
+            bindValues.insert(":start", monday.toString("yyyy-MM-dd"));
+            bindValues.insert(":end", monday.addDays(6).toString("yyyy-MM-dd"));
+        }*/
+        queryBackup.prepare(queryBackup_str);
+        QMapIterator<QString, QVariant> iBindValues(bindValues);
+        while(iBindValues.hasNext()) {
+            iBindValues.next();
+            queryBackup.bindValue(iBindValues.key(), iBindValues.value());
+            qDebug() << iBindValues.key() << " >>> " << iBindValues.value();
+        }
+        queryBackup.exec();
+        qDebug() << queryBackup.lastQuery();
+        qDebug() << queryBackup.boundValues().count();
+        qDebug() << queryBackup.lastError().text();
     }
 
     return true;
@@ -261,8 +401,9 @@ void DiffusionManager::writeDiffusionHistory(QString text) {
 }
 
 void DiffusionManager::finishedDiffusion() {
-    if(m_byPaper_built && m_byServer_nbReceived >= m_byServer_nbTotal) {
+    if(m_byPaper_built && m_diffuseInBackup && m_byServer_nbReceived >= m_byServer_nbTotal) {
         writeDiffusionHistory("<strong>DIFFUSION TERMINÉE !</strong>");
+        ui->button_valid->setEnabled(true);
         if(m_nbErrors <= 0)
             QMessageBox::information(this, "Diffusion terminé", "La diffusion s'est terminée sans problème.");
         else

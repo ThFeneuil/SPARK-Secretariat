@@ -21,9 +21,10 @@ class DiffusionManager : public QDialog
     Q_OBJECT
 
 public:
-    explicit DiffusionManager(QWidget *parent = 0);
+    explicit DiffusionManager(QSqlDatabase* db, QWidget *parent = 0);
     ~DiffusionManager();
     bool diffuseServer(Class* cls);
+    bool diffuseInBackup(Class* cls);
     void writeDiffusionHistory(QString text);
     void finishedDiffusion();
 
@@ -37,6 +38,8 @@ public slots:
 private:
     Ui::DiffusionManager *ui;
 
+    QSqlDatabase* m_db;
+
     QMap<int, Class*> m_classes;
     QMap<int, Kholleur*> m_kholleurs;
     QMap<int, Subject*> m_subjects;
@@ -45,7 +48,9 @@ private:
     int m_byServer_nbTotal;
     int m_byServer_nbReceived;
     bool m_byPaper_built;
+    bool m_diffuseInBackup;
     int m_nbErrors;
+    bool m_replaceTimeslots;
 };
 
 #endif // DIFFUSIONMANAGER_H

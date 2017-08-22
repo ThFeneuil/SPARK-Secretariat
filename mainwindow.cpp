@@ -262,7 +262,7 @@ void MainWindow::openDiffusionManager() {
 
     if(db.isOpen()) {
         // Open the manager
-        DiffusionManager manager(this);
+        DiffusionManager manager(&db, this);
         manager.exec();
     }
     else {
@@ -657,6 +657,17 @@ void MainWindow::createSEC() {
     }
 
     QSqlQuery qCreate(db);
+    qCreate.exec("CREATE TABLE `sec_ backup_kholles` ( "
+                     "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, "
+                     "`id_kholleurs`	INTEGER NOT NULL DEFAULT 0, "
+                     "`id_classes`	INTEGER NOT NULL DEFAULT 0, "
+                     "`date`	TEXT NOT NULL DEFAULT '', "
+                     "`time`	TEXT NOT NULL DEFAULT '', "
+                     "`nb_students`	INTEGER NOT NULL DEFAULT 0, "
+                     "`duration_preparation`	INTEGER NOT NULL DEFAULT 0, "
+                     "`duration_kholle`	INTEGER NOT NULL DEFAULT 0, "
+                     "`id_subjects`	INTEGER NOT NULL DEFAULT 0 "
+                 ");");
     qCreate.exec("CREATE TABLE `sec_classes` ( "
                      "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "
                      "`name`	TEXT NOT NULL, "
