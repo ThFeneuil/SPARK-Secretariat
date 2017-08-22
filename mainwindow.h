@@ -10,6 +10,7 @@
 #include <QList>
 #include <QListWidget>
 #include <QKeyEvent>
+#include <QTimer>
 #include "managers/classesmanager.h"
 #include "managers/kholleursmanager.h"
 #include "managers/subjectsmanager.h"
@@ -38,6 +39,9 @@ public:
     ~MainWindow();
     int distanceLevenshtein(QString u, QString v, int dmax, int cInsert = 1, int cDelete = 1);
     void initListsKholleursClassesSubjects();
+    void initListKholleurs();
+    void initListClasses();
+    void initListSubjects();
     void updateWindow();
     void displayDurations();
     void loadParametersKholleursClasses();
@@ -54,9 +58,9 @@ public slots:
     void openPrintDialog();
     void openAboutIt();
     void selectKholleur(QString name);
-    void middleAreaEmpty(bool noKholleur, bool noClass);
     void selectClass(QString name);
-    void selectInList(QString name, QListWidget* list, TypeElement type);
+    void waitAndSelectInList(QString name, QListWidget* list, TypeElement type);
+    void selectInList();
     void displayLists();
     void kholleurSelected();
     void addWeek();
@@ -65,6 +69,8 @@ public slots:
     void openSEC(bool withPref = false);
     void createSEC();
     void openSettings();
+    void saveSelection();
+    void putSavedSelection();
 
 private:
     Ui::MainWindow *ui;
@@ -76,6 +82,13 @@ private:
     QDate m_firstMonday;
     QSqlDatabase* m_db;
     QMap<int, QMap<int, ParametersKholleurClass>> m_paraKC;
+    int m_saveIdSelecKholleur;
+    int m_saveIdSelecClass;
+
+    QTimer* m_researchTimer;
+    QString m_researchName;
+    QListWidget* m_researchList;
+    TypeElement m_researchType;
 };
 
 #endif // MAINWINDOW_H

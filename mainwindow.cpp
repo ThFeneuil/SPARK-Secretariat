@@ -9,11 +9,19 @@ MainWindow::MainWindow(QWidget *parent) :
     m_list_kholleurs = new QList<Kholleur*>();
     m_list_classes = new QList<Class*>();
     m_list_subjects = new QList<Subject*>();
-    m_weekboxes = new QList<WeekBox*>();
-    m_weekboxes->append(NULL);
-    m_weekboxes->append(NULL);
-    m_weekboxes->append(NULL);
     m_firstMonday = QDate::currentDate().addDays(1-QDate::currentDate().dayOfWeek());
+    m_saveIdSelecKholleur = 0;
+    m_saveIdSelecClass = 0;
+    m_researchTimer = new QTimer(this);
+    m_researchTimer->setSingleShot(true);
+
+    m_weekboxes = new QList<WeekBox*>();
+    m_weekboxes->append(new WeekBox(ALL_MONDAY, NULL, NULL, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0, m_weekboxes));
+    m_weekboxes->append(new WeekBox(m_firstMonday, NULL, NULL, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
+    m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7), NULL, NULL, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
+    ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(0));
+    ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(1));
+    ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(2));
 
     connect(ui->action_File_Create, SIGNAL(triggered(bool)), this, SLOT(createSEC()));
     connect(ui->action_File_Open, SIGNAL(triggered(bool)), this, SLOT(openSEC()));
@@ -40,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->spinBox_kholle, SIGNAL(editingFinished()), this, SLOT(saveDurations()));
     connect(ui->comboBox_subjects, SIGNAL(currentIndexChanged(int)), this, SLOT(saveDurations()));
     connect(ui->pushButton_all_out, SIGNAL(clicked(bool)), this, SLOT(saveDurationsAll()));
+    connect(m_researchTimer, SIGNAL(timeout()), this, SLOT(selectInList()));
 
     openSEC(true);
 
@@ -93,39 +102,26 @@ void MainWindow::updateWindow() {
     if(! db.isOpen())
         return;
 
-    Kholleur* khllSelected = (ui->list_kholleurs->currentItem()) ? (Kholleur*) ui->list_kholleurs->currentItem()->data(Qt::UserRole).toULongLong() : NULL;
-    Class* clSelected = (ui->list_classes->currentItem()) ? ((Class*) ui->list_classes->currentItem()->data(Qt::UserRole).toULongLong()) : NULL;
-    int idKholleur = khllSelected ? khllSelected->getId() : 0;
-    int idClass = clSelected ? clSelected->getId() : 0;
-
+    saveSelection();
     initListsKholleursClassesSubjects();
     displayLists();
-
-    for(int i=0; i<ui->list_kholleurs->count() - 1 && idKholleur; i++) {
-        Kholleur* khll = (Kholleur*) ui->list_kholleurs->item(i)->data(Qt::UserRole).toULongLong();
-        if(khll && khll->getId() == idKholleur)
-            ui->list_kholleurs->setCurrentRow(i);
-    }
-    for(int i=0; i<ui->list_classes->count() - 1 && idClass; i++) {
-        Class* cl = (Class*) ui->list_classes->item(i)->data(Qt::UserRole).toULongLong();
-        if(cl && cl->getId() == idClass)
-            ui->list_classes->setCurrentRow(i);
-    }
+    putSavedSelection();
 
     kholleurSelected();
 }
+
 void MainWindow::initListsKholleursClassesSubjects() {
+    initListKholleurs();
+    initListClasses();
+    initListSubjects();
+
+    loadParametersKholleursClasses();
+}
+
+void MainWindow::initListKholleurs() {
     while(m_list_kholleurs->count() > 0) {
         delete m_list_kholleurs->last();
         m_list_kholleurs->pop_back();
-    }
-    while(m_list_classes->count() > 0) {
-        delete m_list_classes->last();
-        m_list_classes->pop_back();
-    }
-    while(m_list_subjects->count() > 0) {
-        delete m_list_subjects->last();
-        m_list_subjects->pop_back();
     }
 
     // Make the request
@@ -139,8 +135,16 @@ void MainWindow::initListsKholleursClassesSubjects() {
         khll->setName(query.value(1).toString());
         m_list_kholleurs->append(khll);
     }
+}
+
+void MainWindow::initListClasses() {
+    while(m_list_classes->count() > 0) {
+        delete m_list_classes->last();
+        m_list_classes->pop_back();
+    }
 
     // Make the request
+    QSqlQuery query(QSqlDatabase::database());
     query.exec("SELECT id, name FROM sec_classes ORDER BY UPPER(name)");
 
     // Treat the request
@@ -150,8 +154,16 @@ void MainWindow::initListsKholleursClassesSubjects() {
         cl->setName(query.value(1).toString());
         m_list_classes->append(cl);
     }
+}
+
+void MainWindow::initListSubjects() {
+    while(m_list_subjects->count() > 0) {
+        delete m_list_subjects->last();
+        m_list_subjects->pop_back();
+    }
 
     // Make the request
+    QSqlQuery query(QSqlDatabase::database());
     query.exec("SELECT id, name FROM sec_subjects ORDER BY UPPER(name)");
 
     // Treat the request
@@ -161,8 +173,6 @@ void MainWindow::initListsKholleursClassesSubjects() {
         subj->setName(query.value(1).toString());
         m_list_subjects->append(subj);
     }
-
-    loadParametersKholleursClasses();
 }
 
 void MainWindow::displayLists() {
@@ -290,14 +300,26 @@ void MainWindow::openAboutIt() {
 }
 
 void MainWindow::selectKholleur(QString name) {
-    selectInList(name, ui->list_kholleurs, TYPE_KHOLLEUR);
+    waitAndSelectInList(name, ui->list_kholleurs, TYPE_KHOLLEUR);
 }
 
 void MainWindow::selectClass(QString name) {
-    selectInList(name, ui->list_classes, TYPE_CLASS);
+    waitAndSelectInList(name, ui->list_classes, TYPE_CLASS);
 }
 
-void MainWindow::selectInList(QString name, QListWidget* list, TypeElement type) {
+void MainWindow::waitAndSelectInList(QString name, QListWidget* list, TypeElement type) {
+    m_researchTimer->stop();
+    m_researchName = name;
+    m_researchList = list;
+    m_researchType = type;
+    m_researchTimer->start(150);
+}
+
+void MainWindow::selectInList() {
+    QString name = m_researchName;
+    QListWidget* list = m_researchList;
+    TypeElement type = m_researchType;
+
     if(name=="") {
         for(int i=0; i<list->count() - 1; i++)
             list->item(i)->setHidden(false);
@@ -328,60 +350,37 @@ void MainWindow::kholleurSelected() {
     displayDurations();
     QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
     QListWidgetItem* itemClass = ui->list_classes->currentItem();
-    if(itemKholleur && itemClass) {
-        ui->layout_duration->setVisible(true);
-        ui->button_addWeek->setVisible(true);
-        Kholleur* khll = (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong();
-        Class* cl = (Class*) itemClass->data(Qt::UserRole).toULongLong();
-        if(khll && cl) {
-            ui->title_middleArea->setText("Kholleur : " + khll->getName() + " >>> Classe : " + cl->getName());
-            for(int i=0; i<m_weekboxes->count(); i++) {
-                if(m_weekboxes->at(i))
-                    delete m_weekboxes->at(i);
-                if(i==0)
-                        m_weekboxes->replace(i, new WeekBox(ALL_MONDAY, khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0, m_weekboxes));
-                else    m_weekboxes->replace(i, new WeekBox(m_firstMonday.addDays(7*(i-1)), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
-                ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(i));
-            }
-        } else
-            middleAreaEmpty(khll == NULL, cl == NULL);
-    } else
-        middleAreaEmpty(itemKholleur == NULL, itemClass == NULL);
+    Kholleur* khll = itemKholleur ? (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong() : NULL;
+    Class* cl = itemClass ? (Class*) itemClass->data(Qt::UserRole).toULongLong() : NULL;
+
+    ui->layout_duration->setVisible(khll && cl);
+    ui->button_addWeek->setVisible(khll && cl);
+
+    ui->title_middleArea->setText("");
+
+    if(khll && cl)
+        ui->title_middleArea->setText("Kholleur : " + khll->getName() + " >>> Classe : " + cl->getName());
+    if(khll == NULL)
+        ui->title_middleArea->setText("Aucun kholleur sélectionné...<br />");
+    if(cl == NULL)
+        ui->title_middleArea->setText(ui->title_middleArea->text() + "Aucun classe sélectionnée...");
+
+    for(int i=0; i<m_weekboxes->count(); i++)
+        m_weekboxes->at(i)->setKholleurClass(khll, cl);
 }
-
-void MainWindow::middleAreaEmpty(bool noKholleur, bool noClass) {
-    ui->layout_duration->setVisible(false);
-    ui->button_addWeek->setVisible(false);
-    if(noKholleur && noClass)
-        ui->title_middleArea->setText("Aucun kholleur sélectionné...<br />Aucune classe sélectionnée...");
-    else if(noKholleur)
-        ui->title_middleArea->setText("Aucun kholleur sélectionné...");
-    else
-        ui->title_middleArea->setText("Aucune classe sélectionnée...");
-
-    if(noKholleur || noClass) {
-        for(int i=0; i<m_weekboxes->count(); i++) {
-            ui->layoutMiddle->removeWidget(m_weekboxes->at(i));
-            delete m_weekboxes->at(i);
-            m_weekboxes->replace(i, NULL);
-        }
-    }
-}
-
 
 void MainWindow::addWeek() {
     QSqlDatabase db = QSqlDatabase::database();
 
-    QListWidgetItem* item = ui->list_kholleurs->currentItem();
-    if(item) {
-        Kholleur* khll = (Kholleur*) item->data(Qt::UserRole).toULongLong();
-        Class* cl = (ui->list_classes->currentItem()) ? (Class*) ui->list_classes->currentItem()->data(Qt::UserRole).toULongLong() : NULL;
-        if(khll) {
-            int n = m_weekboxes->count();
-            m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7*n), khll, cl, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
-            ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(n));
-        }
-    }
+    QListWidgetItem* itemKholleur = ui->list_kholleurs->currentItem();
+    QListWidgetItem* itemClass = ui->list_classes->currentItem();
+    Kholleur* khll = itemKholleur ? (Kholleur*) itemKholleur->data(Qt::UserRole).toULongLong() : NULL;
+    Class* cl = itemClass ? (Class*) itemClass->data(Qt::UserRole).toULongLong() : NULL;
+
+    int n = m_weekboxes->count();
+    m_weekboxes->append(new WeekBox(m_firstMonday.addDays(7*n), NULL, NULL, ui->spinBox_preparation, ui->spinBox_kholle, ui->comboBox_subjects, m_list_subjects, 0));
+    ui->layoutMiddle->insertWidget(ui->layoutMiddle->count()-1, m_weekboxes->at(n));
+    m_weekboxes->at(n)->setKholleurClass(khll, cl);
 }
 
 int MainWindow::distanceLevenshtein(QString u, QString v, int dmax, int cInsert, int cDelete) {
@@ -441,11 +440,10 @@ bool MainWindow::eventFilter(QObject* obj, QEvent *event) {
                 else    query.prepare("INSERT INTO sec_classes(name) VALUES(:name)");
                 query.bindValue(":name", ((QLineEdit*) obj)->text());
                 query.exec();
-
-                initListsKholleursClassesSubjects();
-                displayLists();
-                ((QLineEdit*) obj)->clear();
                 int idInserted = query.lastInsertId().toInt();
+
+                updateWindow();
+                ((QLineEdit*) obj)->clear();
                 for(int i=0; i<listWidget->count() - 1; i++) {
                     int id = (obj == ui->edit_kholleurs) ? ((Kholleur*) listWidget->item(i)->data(Qt::UserRole).toULongLong())->getId()
                                                          : ((Class*) listWidget->item(i)->data(Qt::UserRole).toULongLong())->getId();
@@ -717,4 +715,37 @@ void MainWindow::openSettings() {
     // Open the dialog
     SettingsDialog dialog(this);
     dialog.exec();
+}
+
+void MainWindow::saveSelection() {
+    QListWidgetItem* itemSelec = NULL;
+
+    itemSelec = ui->list_kholleurs->currentItem();
+    if(itemSelec)
+            m_saveIdSelecKholleur =  itemSelec->data(Qt::UserRole).toULongLong() ? ((Kholleur*) itemSelec->data(Qt::UserRole).toULongLong())->getId() : 0;
+    else    m_saveIdSelecKholleur = 0;
+
+    itemSelec = ui->list_classes->currentItem();
+    if(itemSelec)
+            m_saveIdSelecClass =  itemSelec->data(Qt::UserRole).toULongLong() ? ((Class*) itemSelec->data(Qt::UserRole).toULongLong())->getId() : 0;
+    else    m_saveIdSelecClass = 0;
+}
+
+void MainWindow::putSavedSelection() {
+    for(int i=0; i<ui->list_kholleurs->count(); i++) {
+        QListWidgetItem* item = ui->list_kholleurs->item(i);
+        if(item) {
+            Kholleur* khll = (Kholleur*) item->data(Qt::UserRole).toULongLong();
+            if(khll && khll->getId() == m_saveIdSelecKholleur)
+                ui->list_kholleurs->setCurrentRow(i);
+        }
+    }
+    for(int i=0; i<ui->list_classes->count(); i++) {
+        QListWidgetItem* item = ui->list_classes->item(i);
+        if(item) {
+            Class* cl = (Class*) item->data(Qt::UserRole).toULongLong();
+            if(cl && cl->getId() == m_saveIdSelecClass)
+                ui->list_classes->setCurrentRow(i);
+        }
+    }
 }

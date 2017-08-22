@@ -43,6 +43,9 @@ public:
     explicit WeekBox(QDate monday, Kholleur* khll, Class* cl, QSpinBox* spinbox_preparation, QSpinBox* spinbox_kholle, QComboBox* comboBox_subjects, QList<Subject*>* list_subjects, QWidget *parent = 0, QList<WeekBox*>* links = NULL);
     ~WeekBox();
     void displayHours();
+    void setKholleur(Kholleur* khll);
+    void setClass(Class* cl);
+    void setKholleurClass(Kholleur* khll, Class* cl);
 
 protected:
     bool eventFilter(QObject* obj, QEvent *event);

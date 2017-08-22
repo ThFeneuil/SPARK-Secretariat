@@ -5,8 +5,6 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
     installEventFilter(this);
 
     m_monday = monday;
-    m_kholleur = khll;
-    m_class = cl;
     m_isWeekModel = (m_monday == ALL_MONDAY);
     m_links = links;
     m_db = QSqlDatabase::database();
@@ -14,8 +12,6 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
     m_spinbox_kholle = spinbox_kholle;
     m_comboBox_subjects = comboBox_subjects;
     m_list_subjects = list_subjects;
-    for(int i=0; i<m_list_subjects->count(); i++)
-        m_subjects[m_list_subjects->at(i)->getId()] = m_list_subjects->at(i);
 
     if(m_isWeekModel) {
         QPalette pal = palette();
@@ -29,10 +25,10 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
 
     m_days = new QComboBox;
     if(m_isWeekModel)
-        for(int i=0; i<6; i++)
+        for(int i=0; i<7; i++)
             m_days->addItem(nameDay(i), i);
     else
-        for(int i=0; i<6; i++)
+        for(int i=0; i<7; i++)
             m_days->addItem(nameDay(m_monday.addDays(i).dayOfWeek()-1) + m_monday.addDays(i).toString(" dd/MM"), i);
 
     m_hour = new QTimeEdit(QTime(17, 0));
@@ -64,7 +60,8 @@ WeekBox::WeekBox(QDate monday, Kholleur *khll, Class *cl, QSpinBox* spinbox_prep
 
     m_listHours = new QListWidgetD(this);
     m_listHours->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    displayHours();
+
+    setKholleurClass(khll, cl);
 
     QVBoxLayout* layout = new QVBoxLayout;
     layout->addLayout(first_line);
@@ -80,6 +77,13 @@ WeekBox::~WeekBox() {
 }
 
 void WeekBox::displayHours() {
+    if(! m_class || ! m_kholleur)
+        return;
+
+    m_subjects.clear();
+    for(int i=0; i<m_list_subjects->count(); i++)
+        m_subjects[m_list_subjects->at(i)->getId()] = m_list_subjects->at(i);
+
     m_listHours->clear();
 
     QMap<QString, QListWidgetItem*> hours;
@@ -114,7 +118,7 @@ void WeekBox::displayHours() {
             if(!m_isWeekModel)
                 item->setForeground(QBrush(QColor(255,0,0)));
 
-            hours[m_monday.toString("yyyy-MM-dd ") + time.toString("hh:mm ") + QString::number(id)] = item;
+            hours[date.toString("yyyy-MM-dd ") + time.toString("hh:mm ") + QString::number(id)] = item;
         }
 
         if(! m_isWeekModel) {
@@ -168,6 +172,11 @@ void WeekBox::updateSuffixNbStudents(int nb) {
 }
 
 void WeekBox::addHour() {
+    if(! m_class || ! m_kholleur)
+        return;
+
+    Subject* subj = (Subject*) m_comboBox_subjects->currentData().toULongLong();
+
     QSqlQuery query(m_db);
     query.prepare("INSERT INTO sec_kholles(id_kholleurs, id_classes, date, time, nb_students, duration_preparation, duration_kholle, id_subjects) VALUES(:id_kholleurs, :id_classes, :date, :time, :nb_students, :duration_preparation, :duration_kholle, :id_subjects)");
     query.bindValue(":id_kholleurs", m_kholleur->getId());
@@ -177,7 +186,7 @@ void WeekBox::addHour() {
     query.bindValue(":nb_students", m_nbStudents->value());
     query.bindValue(":duration_preparation", m_spinbox_preparation->value());
     query.bindValue(":duration_kholle", m_spinbox_kholle->value());
-    query.bindValue(":id_subjects", ((Subject*) m_comboBox_subjects->currentData().toULongLong())->getId());
+    query.bindValue(":id_subjects", subj ? subj->getId() : 0);
     query.exec();
 
     m_hour->setTime(m_hour->time().addSecs(m_spinbox_kholle->value()*60));
@@ -217,6 +226,9 @@ void WeekBox::deleteHour() {
 }
 
 void WeekBox::resetHours() {
+    if(! m_class || ! m_kholleur)
+        return;
+
     QSqlQuery query(m_db);
     query.prepare("DELETE FROM sec_exceptions WHERE monday = :monday AND id_kholles IN "
                   "(SELECT id FROM sec_kholles WHERE id_kholleurs = :id_kholleurs AND id_classes = :id_classes)");
@@ -237,6 +249,13 @@ void WeekBox::resetHours() {
 }
 
 bool WeekBox::eventFilter(QObject* obj, QEvent *event) {
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return) {
+            addHour();
+            return true;
+        }
+    }
     return QGroupBox::eventFilter(obj, event);
 }
 
@@ -256,4 +275,21 @@ bool QListWidgetD::eventFilter(QObject* obj, QEvent *event) {
     return QListWidget::eventFilter(obj, event);
 }
 
+void WeekBox::setKholleur(Kholleur* khll) {
+    m_kholleur = khll;
+    setVisible(m_kholleur != NULL && m_class != NULL);
+    displayHours();
+}
 
+void WeekBox::setClass(Class* cl) {
+    m_class = cl;
+    setVisible(m_kholleur != NULL && m_class != NULL);
+    displayHours();
+}
+
+void WeekBox::setKholleurClass(Kholleur* khll, Class* cl) {
+    m_kholleur = khll;
+    m_class = cl;
+    setVisible(m_kholleur != NULL && m_class != NULL);
+    displayHours();
+}
