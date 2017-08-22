@@ -62,10 +62,15 @@ DiffusionManager::~DiffusionManager()
 {
     delete ui;
 
-    QMapIterator<int, Kholleur*> iKholleur(m_kholleurs);
-    while (iKholleur.hasNext()) {
-        iKholleur.next();
-        delete iKholleur.value();
+    QMapIterator<int, Kholleur*> iKholleurs(m_kholleurs);
+    while (iKholleurs.hasNext()) {
+        iKholleurs.next();
+        delete iKholleurs.value();
+    }
+    QMapIterator<int, Subject*> iSubjects(m_subjects);
+    while (iSubjects.hasNext()) {
+        iSubjects.next();
+        delete iSubjects.value();
     }
     QMapIterator<int, Class*> iClasses(m_classes);
     while (iClasses.hasNext()) {
@@ -156,7 +161,7 @@ void DiffusionManager::diffuse() {
     }
 
     // Initialisation
-    m_byServer_nbTotal = listByPaper.length();
+    m_byServer_nbTotal = listByServer.length();
     m_byServer_nbReceived = 0;
     m_byPaper_built = false;
     m_diffuseInBackup = false;
@@ -226,7 +231,7 @@ bool DiffusionManager::diffuseServer(Class* cls) {
     for(int num=1; num<=2; num++) {
         switch(num) {
         case 1:
-            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_kholle, id_subjects FROM sec_kholles WHERE "
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
                           "id_classes = :id_classes AND (date >= :start AND date <= :end) "
                           "ORDER BY date, time"
                           );
@@ -308,7 +313,7 @@ bool DiffusionManager::diffuseInBackup(Class* cls) {
     for(int num=1; num<=2; num++) {
         switch(num) {
         case 1:
-            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_kholle, id_subjects FROM sec_kholles WHERE "
+            query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
                           "id_classes = :id_classes AND (date >= :start AND date <= :end) "
                           "ORDER BY date, time"
                           );
@@ -373,10 +378,14 @@ bool DiffusionManager::diffuseInBackup(Class* cls) {
         while(iBindValues.hasNext()) {
             iBindValues.next();
             queryBackup.bindValue(iBindValues.key(), iBindValues.value());
-            qDebug() << iBindValues.key() << " >>> " << iBindValues.value();
         }
         queryBackup.exec();
         qDebug() << queryBackup.lastQuery();
+        QMapIterator<QString, QVariant> iBoundValues(queryBackup.boundValues());
+        while(iBoundValues.hasNext()) {
+            iBoundValues.next();
+            qDebug() << iBoundValues.key() << " >>> " << iBoundValues.value();
+        }
         qDebug() << queryBackup.boundValues().count();
         qDebug() << queryBackup.lastError().text();
     }
