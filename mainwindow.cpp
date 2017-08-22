@@ -657,7 +657,7 @@ void MainWindow::createSEC() {
     }
 
     QSqlQuery qCreate(db);
-    qCreate.exec("CREATE TABLE `sec_ backup_kholles` ( "
+    qCreate.exec("CREATE TABLE `sec_backup_kholles` ( "
                      "`id`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE, "
                      "`id_kholleurs`	INTEGER NOT NULL DEFAULT 0, "
                      "`id_classes`	INTEGER NOT NULL DEFAULT 0, "
