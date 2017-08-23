@@ -10,7 +10,7 @@ bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSql
         return false;
 
     QString filename = QFileDialog::getSaveFileName(NULL, "Enregistrer sous...",
-                                                    "Kholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
+                                                    "HorairesKholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
     if(filename == "") {
         if(manager)
             manager->writeDiffusionHistory("<strong>Création du PDF annulée...</strong>");
@@ -265,10 +265,10 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
                 rowSubjectHeight += row_height;
                 painter->drawLine(posLinesV[2]*width/100, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
             }
-            painter->drawText(posLinesV[1]*width/100, heightIntro + row_height + row_height*num-rowSubjectHeight + (rowSubjectHeight-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, " "+nameSubject);
+            painter->drawText(posLinesV[1]*width/100, heightIntro + row_height + row_height*num-rowSubjectHeight + (rowSubjectHeight-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, limitedText(painter, (posLinesV[2]-posLinesV[1])*width/100, " "+nameSubject));
             painter->drawLine(posLinesV[1]*width/100, heightIntro+row_height*(num+1), posLinesV[2]*width/100, heightIntro+row_height*(num+1));
         }
-        painter->drawText(posLinesV[0]*width/100, heightIntro + row_height + row_height*num-rowKholleurHeight + (rowKholleurHeight-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, " "+nameKholleur);
+        painter->drawText(posLinesV[0]*width/100, heightIntro + row_height + row_height*num-rowKholleurHeight + (rowKholleurHeight-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, limitedText(painter, (posLinesV[1]-posLinesV[0])*width/100, " "+nameKholleur));
         painter->drawLine(posLinesV[0]*width/100, heightIntro+row_height*(num+1), posLinesV[1]*width/100, heightIntro+row_height*(num+1));
         painter->setPen(QPen(QColor(Qt::black), thickLine));
         painter->drawLine(0, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
@@ -296,6 +296,15 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
                 delete data[i][j][k];
 
     return true;
+}
+
+QString PrintPDF::limitedText(QPainter *painter, int widthMax, QString text) {
+    QFontMetrics font = painter->fontMetrics();
+    QString newText = text + " ";
+    if(font.width(newText) > widthMax)
+        for(int i=text.length()-1; i>=0 && font.width(newText) > widthMax; i--)
+            newText = text.left(i) + "... ";
+    return newText;
 }
 
 void PrintPDF::drawCenterText(QPainter *painter, int left, int right, int height, QString text) {

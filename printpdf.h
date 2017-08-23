@@ -34,6 +34,8 @@ public:
     static bool drawPage(QPdfWriter *writer, QPainter *painter, QDate monday_date, Class *cls, QSqlDatabase db);
     static bool printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSqlDatabase db, DiffusionManager* manager = NULL);
     static void drawCenterText(QPainter *painter, int left, int right, int height, QString text);
+    static QString limitedText(QPainter *painter, int widthMax, QString text);
+
     static bool printKhollesPapers(QDate monday_date, QList<Class *> listClasses, QSqlDatabase db);
     static void drawKPStructure(QPdfWriter *writer, QPainter *painter);
     static void drawData(QPdfWriter *writer, QPainter *painter, QDate date, Kholleur *kh, Subject *s, Class *c, int nb_students);
