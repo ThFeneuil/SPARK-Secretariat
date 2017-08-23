@@ -34,6 +34,7 @@ public slots:
     void infoLabel();
     void update_list_mondays();
     void update_edit_monday();
+    void boldSelection(QListWidgetItem* current, QListWidgetItem* previous);
 
 private:
     Ui::DiffusionManager *ui;

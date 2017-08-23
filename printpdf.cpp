@@ -19,9 +19,9 @@ bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSql
 
     //Create the PDF Writer
     QPdfWriter writer(filename);
-    writer.setPageSize(QPdfWriter::A3);
+    writer.setPageSize(QPdfWriter::A4);
     writer.setPageOrientation(QPageLayout::Portrait);
-    writer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
+    writer.setPageMargins(QMarginsF(10, 10, 10, 10), QPageLayout::Millimeter);
     writer.setCreator("SPARK Secretariat");
 
     QPainter painter;
@@ -169,8 +169,8 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
     if(row_height > maxHeightRow)
         row_height = maxHeightRow;
     int yEndTable = row_height*(nbRows+1) + heightIntro;
-    int thickLine = 25;
-    int narrowLine = 10;
+    int thickLine = 18;
+    int narrowLine = 7;
 
     /// CALCUL POINT SIZE FONT
     // Point Size Font Title
@@ -278,6 +278,8 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
         painter->drawLine(0, heightIntro+row_height*(num+1), width, heightIntro+row_height*(num+1));
     }
 
+    textFont.setPointSize(MAX_POINT_SIZE_TEXT_TIMESLOTS);
+    painter->setFont(textFont);
     painter->drawText(0, yEndTable +heightSpace+ (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote1);
     painter->drawText(0, yEndTable +heightSpace+ (heightFootnotes-heightSpace)/2 + (heightFootnotes/2-fontH.height())/2 + fontH.ascent() + fontH.leading()/2, str_footnote2);
 
@@ -329,7 +331,7 @@ int PrintPDF::adaptFont(QFont* font, QString text, int widthText, int maxHeight)
         font->setPointSize(font->pointSize() - 1);
     }
     int betterPointSize = font->pointSize();
-    font->setPixelSize(initialPointSize);
+    font->setPointSize(initialPointSize);
     return betterPointSize;
 }
 

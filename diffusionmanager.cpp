@@ -56,6 +56,8 @@ DiffusionManager::DiffusionManager(QSqlDatabase* db, QWidget *parent) :
     update_list_mondays();
     connect(ui->edit_monday, SIGNAL(dateChanged(QDate)), this, SLOT(update_list_mondays()));
     connect(ui->list_mondays, SIGNAL(itemSelectionChanged()), this, SLOT(update_edit_monday()));
+    connect(ui->list_mondays, SIGNAL(currentItemChanged(QListWidgetItem*,QListWidgetItem*)), this, SLOT(boldSelection(QListWidgetItem*,QListWidgetItem*)));
+    boldSelection(ui->list_mondays->currentItem(), NULL);
 }
 
 DiffusionManager::~DiffusionManager()
@@ -99,7 +101,7 @@ void DiffusionManager::update_list_mondays() {
         query.bindValue(":end", monday.addDays(6).toString("yyyy-MM-dd"));
         query.exec();
         if(query.next() &&  query.value(0).toInt() > 0)
-            item->setBackgroundColor(QColor(Qt::green));
+            item->setBackgroundColor(QColor(255,128,0));
     }
     ui->list_mondays->setCurrentRow(10);
 }
@@ -114,6 +116,19 @@ void DiffusionManager::update_edit_monday() {
         connect(ui->edit_monday, SIGNAL(dateChanged(QDate)), this, SLOT(update_list_mondays()));
         if(row < 3 || row > 19)
             update_list_mondays();
+    }
+}
+
+void DiffusionManager::boldSelection(QListWidgetItem* current, QListWidgetItem* previous) {
+    if(previous) {
+        QFont fnt = previous->font();
+        fnt.setBold(false);
+        previous->setFont(fnt);
+    }
+    if(current){
+        QFont fnt = current->font();
+        fnt.setBold(true);
+        current->setFont(fnt);
     }
 }
 
@@ -132,7 +147,8 @@ void DiffusionManager::infoLabel() {
     }
 
     ui->label_info->setText("Diffusion par voie papier : " + QString::number(by_paper) + "<br />" +
-                            "Diffusion par email : " + QString::number(by_email) + "<br />" +
+                            // TO DESACTIVATE EMAIL OPTION
+                            //"Diffusion par email : " + QString::number(by_email) + "<br />" +
                             "Diffusion par serveur : " + QString::number(by_server));
 }
 

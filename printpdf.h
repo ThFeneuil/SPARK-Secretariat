@@ -23,7 +23,7 @@
 #include "diffusionmanager.h"
 #include "utilities.h"
 
-#define MAX_POINT_SIZE_TEXT_TIMESLOTS 17
+#define MAX_POINT_SIZE_TEXT_TIMESLOTS 12
 
 class DiffusionManager;
 
