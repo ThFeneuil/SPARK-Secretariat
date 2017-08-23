@@ -307,7 +307,7 @@
     </property>
     <addaction name="action_Diffusion_options"/>
     <addaction name="action_Diffusion_Diffuse"/>
-    <addaction name="action_Diffusion_Print"/>
+    <addaction name="action_Diffusion_KhollesPaper"/>
    </widget>
    <addaction name="menuFichier"/>
    <addaction name="menuBDD"/>
@@ -374,9 +374,9 @@
     <string>Diffuser</string>
    </property>
   </action>
-  <action name="action_Diffusion_Print">
+  <action name="action_Diffusion_KhollesPaper">
    <property name="text">
-    <string>Imprimer</string>
+    <string>Feuilles de kholle</string>
    </property>
   </action>
   <action name="action_DB_Subjects">

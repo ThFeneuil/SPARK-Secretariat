@@ -20,7 +20,7 @@
 #include "optionsdialog.h"
 #include "diffusionmanager.h"
 #include "printpdf.h"
-#include "printdialog.h"
+#include "khollespapermanager.h"
 #include "preferences.h"
 #include "settingsdialog.h"
 
@@ -55,7 +55,7 @@ public slots:
     void openSubjectsManager();
     void openOptions();
     void openDiffusionManager();
-    void openPrintDialog();
+    void openKhollesPaperManager();
     void openAboutIt();
     void selectKholleur(QString name);
     void selectClass(QString name);

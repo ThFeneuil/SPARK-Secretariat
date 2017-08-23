@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->action_DB_Subjects, SIGNAL(triggered(bool)), this, SLOT(openSubjectsManager()));
     connect(ui->action_Diffusion_options, SIGNAL(triggered(bool)), this, SLOT(openOptions()));
     connect(ui->action_Diffusion_Diffuse, SIGNAL(triggered(bool)), this, SLOT(openDiffusionManager()));
-    connect(ui->action_Diffusion_Print, SIGNAL(triggered(bool)), this, SLOT(openPrintDialog()));
+    connect(ui->action_Diffusion_KhollesPaper, SIGNAL(triggered(bool)), this, SLOT(openKhollesPaperManager()));
 
     //Pour le A propos de...
     QAction *action_AboutIt = new QAction("A propos de...");
@@ -89,7 +89,7 @@ void MainWindow::updateWindow() {
     ui->action_DB_Subjects->setEnabled(db.isOpen());
     ui->action_Diffusion_options->setEnabled(db.isOpen());
     ui->action_Diffusion_Diffuse->setEnabled(db.isOpen());
-    ui->action_Diffusion_Print->setEnabled(db.isOpen());
+    ui->action_Diffusion_KhollesPaper->setEnabled(db.isOpen());
     ui->list_kholleurs->setEnabled(db.isOpen());
     ui->list_classes->setEnabled(db.isOpen());
     ui->edit_kholleurs->setEnabled(db.isOpen());
@@ -280,13 +280,13 @@ void MainWindow::openDiffusionManager() {
     }
 }
 
-void MainWindow::openPrintDialog() {
+void MainWindow::openKhollesPaperManager() {
     //Get connection information
     QSqlDatabase db = QSqlDatabase::database();
 
     if(db.isOpen()) {
         // Open the manager
-        PrintDialog manager(&db, this);
+        KhollesPaperManager manager(&db, this);
         manager.exec();
     }
     else {

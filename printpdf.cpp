@@ -335,12 +335,41 @@ int PrintPDF::adaptFont(QFont* font, QString text, int widthText, int maxHeight)
     return betterPointSize;
 }
 
-bool PrintPDF::printKhollesPapers(QDate monday_date, QList<Class*> listClasses, QSqlDatabase db) {
-    QString filename = QFileDialog::getSaveFileName(NULL, "Enregistrer sous...",
-                                                    "Kholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
-    if(filename == "")
-        return false;
+bool PrintPDF::initKhollesPapers(QDate monday_date, QList<Class *> listClasses, QSqlDatabase db, bool separateFiles) {
+    if(separateFiles) {
+        QString dirname = QFileDialog::getExistingDirectory(NULL, "Enregistrer sous...", QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+        if(dirname == "")
+            return false;
 
+        QList<Class*> list;
+        list << NULL;
+        for(int i = 0; i < listClasses.length(); i++) {
+            QString relname = "FeuillesKholles_" + monday_date.toString("yyyyMMdd") + "_" + listClasses[i]->getName() + ".pdf";
+            QString filename = dirname + "/" + relname;
+            if(QFile::exists(filename)) {
+                int res = QMessageBox::warning(NULL, "Attention", "Le fichier <strong>" + relname + "</strong> existe déjà. Voulez-vous le remplacer ?", QMessageBox::Yes | QMessageBox::Cancel);
+                if(res == QMessageBox::Cancel)
+                    return false;
+            }
+            list[0] = listClasses[i];
+            if(!printKhollesPapers(filename, monday_date, list, db))
+                return false;
+        }
+    }
+
+    else {
+        QString filename = QFileDialog::getSaveFileName(NULL, "Enregistrer sous...",
+                                                        QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/FeuillesKholles_" + monday_date.toString("yyyyMMdd"),  "PDF (*.pdf)");
+        if(filename == "")
+            return false;
+
+        if(!printKhollesPapers(filename, monday_date, listClasses, db))
+            return false;
+    }
+    return true;
+}
+
+bool PrintPDF::printKhollesPapers(QString filename, QDate monday_date, QList<Class*> listClasses, QSqlDatabase db) {
     //Create the PDF Writer
     QPdfWriter writer(filename);
     writer.setPageSize(QPdfWriter::A4);
@@ -392,7 +421,7 @@ bool PrintPDF::printKhollesPapers(QDate monday_date, QList<Class*> listClasses, 
 
     bool first_page = true;
     for(int i = 0; i < listClasses.length(); i++) {
-        QMap<int, QMap<int, QMap<QDate, int>>> pages;
+        QMap<QString, QMap<QString, QMap<QDate, int>>> pages;
 
         ///Load all data for this class
         query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
@@ -406,13 +435,18 @@ bool PrintPDF::printKhollesPapers(QDate monday_date, QList<Class*> listClasses, 
         while(query.next()) {
             QDate date = query.value(1).toDate();
             int nb_students = query.value(3).toInt();
-            int id_kholleurs = query.value(4).toInt();
-            int id_subjects = query.value(7).toInt();
+            Kholleur *kh = kholleurs[query.value(4).toInt()];
+            Subject *s = subjects[query.value(7).toInt()];
 
-            if(!pages[id_kholleurs][id_subjects].contains(date))
-                pages[id_kholleurs][id_subjects][date] = 0;
+            if(kh == NULL || s == NULL) {
+                QMessageBox::critical(NULL, "Erreur", "Erreur dans la base de données.");
+                return false;
+            }
 
-            pages[id_kholleurs][id_subjects][date] += nb_students;
+            if(!pages[s->getName()][kh->getName()].contains(date))
+                pages[s->getName()][kh->getName()][date] = 0;
+
+            pages[s->getName()][kh->getName()][date] += nb_students;
         }
 
         query.prepare("SELECT id, date, time, nb_students, id_kholleurs, duration_preparation, duration_kholle, id_subjects FROM sec_kholles WHERE "
@@ -430,39 +464,72 @@ bool PrintPDF::printKhollesPapers(QDate monday_date, QList<Class*> listClasses, 
             int numDays = QDate(1923, 1, 1).daysTo(date);
             date = monday_date.addDays(numDays);
             int nb_students = query.value(3).toInt();
-            int id_kholleurs = query.value(4).toInt();
-            int id_subjects = query.value(7).toInt();
+            Kholleur *kh = kholleurs[query.value(4).toInt()];
+            Subject *s = subjects[query.value(7).toInt()];
 
-            if(!pages[id_kholleurs][id_subjects].contains(date))
-                pages[id_kholleurs][id_subjects][date] = 0;
+            if(kh == NULL || s == NULL) {
+                QMessageBox::critical(NULL, "Erreur", "Erreur dans la base de données.");
+                return false;
+            }
 
-            pages[id_kholleurs][id_subjects][date] += nb_students;
+            if(!pages[s->getName()][kh->getName()].contains(date))
+                pages[s->getName()][kh->getName()][date] = 0;
+
+            pages[s->getName()][kh->getName()][date] += nb_students;
         }
 
 
         ///Treat data
-        //For each kholleur
-        QMapIterator<int, QMap<int, QMap<QDate, int>>> ikh(pages);
-        while(ikh.hasNext()) {
-            ikh.next();
-            //For each subject
-            QMapIterator<int, QMap<QDate, int>> isub(ikh.value());
-            while(isub.hasNext()) {
-                isub.next();
+        //For each subject
+        QMapIterator<QString, QMap<QString, QMap<QDate, int>>> isub(pages);
+        while(isub.hasNext()) {
+            isub.next();
+            //For each kholleur
+            QMapIterator<QString, QMap<QDate, int>> ikh(isub.value());
+            while(ikh.hasNext()) {
+                ikh.next();
                 //For each day
-                QMapIterator<QDate, int> idate(isub.value());
+                QMapIterator<QDate, int> idate(ikh.value());
                 while(idate.hasNext()) {
                     idate.next();
 
-                    if(!first_page)
-                        writer.newPage();
-                    first_page = false;
+                    int nb = idate.value();
+                    int q = (int) nb/MAX_STUDENTS_KP;
+                    int r = nb % MAX_STUDENTS_KP;
 
-                    drawKPStructure(&writer, &painter);
-                    drawData(&writer, &painter, idate.key(), kholleurs[ikh.key()], subjects[isub.key()], listClasses[i], idate.value());
+                    for(int j = 0; j < q; j++) {
+                        if(!first_page)
+                            writer.newPage();
+                        first_page = false;
+
+                        drawKPStructure(&writer, &painter);
+                        drawData(&writer, &painter, idate.key(), ikh.key(), isub.key(), listClasses[i]->getName(), MAX_STUDENTS_KP);
+                    }
+                    if(r != 0) {
+                        if(!first_page)
+                            writer.newPage();
+                        first_page = false;
+
+                        drawKPStructure(&writer, &painter);
+                        drawData(&writer, &painter, idate.key(), ikh.key(), isub.key(), listClasses[i]->getName(), r);
+                    }
                 }
             }
         }
+    }
+
+
+    ///Free data
+    QMapIterator<int, Kholleur*> iKholleurs(kholleurs);
+    while(iKholleurs.hasNext()) {
+        iKholleurs.next();
+        delete iKholleurs.value();
+    }
+
+    QMapIterator<int, Subject*> iSubjects(subjects);
+    while(iSubjects.hasNext()) {
+        iSubjects.next();
+        delete iSubjects.value();
     }
 
     return true;
@@ -480,7 +547,7 @@ void PrintPDF::drawKPStructure(QPdfWriter *writer, QPainter *painter) {
     QString str_obs = "OBSERVATIONS :";
 
     // Table Structure
-    int nbRows = 9;
+    int nbRows = MAX_STUDENTS_KP;
     int yTable = width*0.068;
     int heightText = width*0.03;
     int x2eColumn = width*0.18;
@@ -533,7 +600,7 @@ void PrintPDF::drawKPStructure(QPdfWriter *writer, QPainter *painter) {
     painter->drawLine(x3eColumn, yTable, x3eColumn, yEndTable-heightRow);
 }
 
-void PrintPDF::drawData(QPdfWriter *writer, QPainter *painter, QDate date, Kholleur *kh, Subject *s, Class *c, int nb_students) {
+void PrintPDF::drawData(QPdfWriter *writer, QPainter *painter, QDate date, QString name_kh, QString name_sub, QString name_class, int nb_students) {
     int width = writer->width();
     int heightText = width*0.03;
 
@@ -545,10 +612,7 @@ void PrintPDF::drawData(QPdfWriter *writer, QPainter *painter, QDate date, Kholl
     painter->setFont(f);
 
     painter->drawText(font.width(" Date : "), 0, nameDay(date.dayOfWeek()-1) + " " + date.toString("dd/MM/yyyy"));
-    if(kh != NULL)
-        painter->drawText(width*0.30 + font.width("Interrogateur : "), 0, kh->getName());
-    if(s != NULL)
-        painter->drawText(width*0.30 + font.width("Matière : "), heightText*0.8, s->getName());
-    if(c != NULL)
-        painter->drawText(width*0.30 + font.width("Classe : "), heightText*0.8*2, c->getName());
+    painter->drawText(width*0.30 + font.width("Interrogateur : "), 0, name_kh);
+    painter->drawText(width*0.30 + font.width("Matière : "), heightText*0.8, name_sub);
+    painter->drawText(width*0.30 + font.width("Classe : "), heightText*0.8*2, name_class);
 }
