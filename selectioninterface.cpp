@@ -2,7 +2,7 @@
 #include "ui_selectioninterface.h"
 
 SelectionInterface::SelectionInterface(QSqlDatabase* db, QWidget *parent) :
-    QDialog(parent),
+    QWidget(parent),
     ui(new Ui::SelectionInterface)
 {
     ui->setupUi(this);

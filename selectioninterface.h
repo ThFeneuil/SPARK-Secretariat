@@ -1,7 +1,7 @@
 #ifndef SELECTIONINTERFACE_H
 #define SELECTIONINTERFACE_H
 
-#include <QDialog>
+#include <QWidget>
 #include <QtSql>
 #include <QDebug>
 #include <QListWidgetItem>
@@ -14,7 +14,7 @@ namespace Ui {
 class SelectionInterface;
 }
 
-class SelectionInterface : public QDialog
+class SelectionInterface : public QWidget
 {
     Q_OBJECT
 

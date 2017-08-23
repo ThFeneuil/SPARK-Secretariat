@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>KhollesPaperManager</class>
  <widget class="QDialog" name="KhollesPaperManager">
@@ -5,13 +6,33 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>670</width>
+    <height>463</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Feuilles de kholle</string>
   </property>
+  <layout class="QHBoxLayout" name="layout">
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QCheckBox" name="box_separateFiles">
+       <property name="text">
+        <string>Fichiers séparés par classe</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="btn_generate">
+       <property name="text">
+        <string>Générer les feuilles de kholle</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
  </widget>
  <resources/>
  <connections/>
