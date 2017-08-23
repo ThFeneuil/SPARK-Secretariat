@@ -9,6 +9,10 @@ OptionsDialog::OptionsDialog(QSqlDatabase *db, QWidget *parent) :
     m_db = db;
     m_canSave = true;
 
+    // TO DESACTIVATE EMAIL OPTION
+    ui->checkbox_email->setVisible(false);
+    ui->edit_email->setVisible(false);
+
     connect(ui->list_classes, SIGNAL(currentRowChanged(int)), this, SLOT(selectClass()));
     connect(ui->checkbox_paper, SIGNAL(toggled(bool)), this, SLOT(optionsModified()));
     connect(ui->checkbox_email, SIGNAL(toggled(bool)), this, SLOT(optionsModified()));
