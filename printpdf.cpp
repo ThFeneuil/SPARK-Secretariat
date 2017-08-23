@@ -41,7 +41,7 @@ bool PrintPDF::printTimeSlots(QDate monday_date, QList<Class*> listClasses, QSql
             return false;
         }
         if(manager)
-            manager->writeDiffusionHistory("PDF : "+QString::number(i+1)+"/"+QString::number(listClasses.length())+" générée.");
+            manager->writeDiffusionHistory("PDF : Page "+QString::number(i+1)+"/"+QString::number(listClasses.length())+" générée.");
     }
 
     painter.end();
@@ -76,6 +76,10 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
         subj->setName(query.value(1).toString());
         subjects.insert(subj->getId(), subj);
     }
+    Subject* emptySubject = new Subject();
+    emptySubject->setId(0);
+    emptySubject->setName("...");
+    subjects.insert(0, emptySubject);
 
     QMap<QString, QMap<QString, QMap<QString, TimeSlot*>>> timeslots;
     int nbRows = 0;
@@ -252,7 +256,7 @@ bool PrintPDF::drawPage(QPdfWriter* writer, QPainter* painter, QDate monday_date
 
                 // Text
                 nameKholleur = kholleurs[ts->getId_kholleurs()]->getName();
-                nameSubject = (ts->getId_subjects() ? subjects[ts->getId_subjects()]->getName() : "...");
+                nameSubject = subjects[ts->getId_subjects()]->getName();
                 painter->drawText(posLinesV[2]*width/100, heightText, " "+nameDay(ts->getDate().dayOfWeek()-1)+ts->getDate().toString(" dd/MM"));
                 drawCenterText(painter, posLinesV[3]*width/100, posLinesV[4]*width/100, heightText, ts->getTime().toString("hh:mm"));
                 QString prep = (ts->getDuration_preparation()) ? " (" + QString::number(ts->getDuration_preparation()) + ")": "";

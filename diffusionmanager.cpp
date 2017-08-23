@@ -414,7 +414,7 @@ void DiffusionManager::requestReturn(ODBRequest *req) {
 
 void DiffusionManager::writeDiffusionHistory(QString text) {
     ui->label_diffusionHistory->setText(text + "<br />" + ui->label_diffusionHistory->text());
-    show();
+    qApp->processEvents();
 }
 
 void DiffusionManager::finishedDiffusion() {
