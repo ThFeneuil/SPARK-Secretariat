@@ -383,6 +383,10 @@ bool PrintPDF::printKhollesPapers(QDate monday_date, QList<Class*> listClasses, 
         subj->setName(query.value(1).toString());
         subjects.insert(subj->getId(), subj);
     }
+    Subject* emptySub = new Subject();
+    emptySub->setId(0);
+    emptySub->setName("...");
+    subjects.insert(emptySub->getId(), emptySub);
 
     bool first_page = true;
     for(int i = 0; i < listClasses.length(); i++) {
@@ -539,7 +543,10 @@ void PrintPDF::drawData(QPdfWriter *writer, QPainter *painter, QDate date, Kholl
     painter->setFont(f);
 
     painter->drawText(font.width(" Date : "), 0, nameDay(date.dayOfWeek()-1) + " " + date.toString("dd/MM/yyyy"));
-    painter->drawText(width*0.30 + font.width("Interrogateur : "), 0, kh->getName());
-    painter->drawText(width*0.30 + font.width("Matière : "), heightText*0.8, s->getName());
-    painter->drawText(width*0.30 + font.width("Classe : "), heightText*0.8*2, c->getName());
+    if(kh != NULL)
+        painter->drawText(width*0.30 + font.width("Interrogateur : "), 0, kh->getName());
+    if(s != NULL)
+        painter->drawText(width*0.30 + font.width("Matière : "), heightText*0.8, s->getName());
+    if(c != NULL)
+        painter->drawText(width*0.30 + font.width("Classe : "), heightText*0.8*2, c->getName());
 }
