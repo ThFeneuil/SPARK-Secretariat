@@ -344,7 +344,11 @@ bool PrintPDF::initKhollesPapers(QDate monday_date, QList<Class *> listClasses, 
         QList<Class*> list;
         list << NULL;
         for(int i = 0; i < listClasses.length(); i++) {
-            QString relname = "FeuillesKholles_" + monday_date.toString("yyyyMMdd") + "_" + listClasses[i]->getName() + ".pdf";
+            QString classname = listClasses[i]->getName();
+            classname.remove(QRegularExpression("[\\\\/:\\*\\?\"<>|]"));
+            classname.append("_" + QString::number(listClasses[i]->getId()));
+
+            QString relname = "FeuillesKholles_" + monday_date.toString("yyyyMMdd") + "_" + classname + ".pdf";
             QString filename = dirname + "/" + relname;
             if(QFile::exists(filename)) {
                 int res = QMessageBox::warning(NULL, "Attention", "Le fichier <strong>" + relname + "</strong> existe déjà. Voulez-vous le remplacer ?", QMessageBox::Yes | QMessageBox::Cancel);
