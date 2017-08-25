@@ -370,6 +370,7 @@ bool PrintPDF::initKhollesPapers(QDate monday_date, QList<Class *> listClasses, 
         if(!printKhollesPapers(filename, monday_date, listClasses, db))
             return false;
     }
+    QMessageBox::information(NULL, "Succès", ((separateFiles && listClasses.length() >= 2) ? "Fichiers PDF générés." : "Fichier PDF généré."));
     return true;
 }
 
@@ -520,6 +521,20 @@ bool PrintPDF::printKhollesPapers(QString filename, QDate monday_date, QList<Cla
                 }
             }
         }
+    }
+
+    if(first_page) {
+        QString text = "Pas d'horaires de kholles...";
+
+        int width = writer.width();
+        int height = writer.height();
+        QFont font = painter.font();
+        font.setBold(false);
+        font.setPointSize(adaptFont(&font, text, width, height));
+        painter.setFont(font);
+        QFontMetrics m = painter.fontMetrics();
+
+        painter.drawText((width-m.width(text))/2, (height-m.height())/2, text);
     }
 
 
